@@ -1,0 +1,57 @@
+name: Deploy demo to GitHub Pages
+
+# Builds examples/demo.md with feynman and publishes the result to Pages.
+# The build runs Python cells (matplotlib) at build time, so we install the
+# package with its `demo` extra rather than committing any generated HTML.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Least privilege needed for the Pages deployment.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One deployment at a time; newer pushes supersede in-flight runs.
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install feynman (with demo extras)
+        run: |
+          python -m pip install --upgrade pip
+          pip install ".[demo]"
+
+      - name: Build demo
+        run: |
+          feynman build examples/demo.md -o _site
+          # Pages serves index.html at the site root.
+          cp _site/demo.html _site/index.html
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
