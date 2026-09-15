@@ -23,8 +23,9 @@ from markdown_it.token import Token
 
 from html import escape
 
-from feynman import directives
+from feynman import crossref, directives
 from feynman.collect import AssetCollector
+from feynman.crossref import Target
 from feynman.execute import CellResult, execute_cells
 from feynman.highlight import highlight_code
 from feynman.math import to_mathml
@@ -49,11 +50,13 @@ _OUTPUT_ICON = (
 )
 
 
-def _equation_panel(latex: str) -> str:
+def _equation_panel(latex: str, target: Target | None = None) -> str:
     """Wrap a display equation in a panel with a copy-the-LaTeX button.
 
     The raw source rides along in ``data-latex`` (HTML-escaped) so the runtime
-    can copy the exact LaTeX a reader would paste back into a document.
+    can copy the exact LaTeX a reader would paste back into a document. A
+    labelled equation additionally carries an ``id`` anchor and a parenthesised
+    number (``(1)``) so cross-references can point at it.
     """
     mathml = to_mathml(latex, display=True)
     attr = escape(latex.strip(), quote=True)
@@ -61,7 +64,12 @@ def _equation_panel(latex: str) -> str:
         f'<button type="button" class="equation-copy js-only" '
         f'data-latex="{attr}" aria-label="Copy LaTeX source">{_COPY_ICON}</button>'
     )
-    return f'<div class="equation-panel">{mathml}{button}</div>'
+    id_attr = ""
+    number = ""
+    if target is not None:
+        id_attr = f' id="{escape(target.label, quote=True)}"'
+        number = f'<span class="equation-number">{escape(target.marker)}</span>'
+    return f'<div class="equation-panel"{id_attr}>{mathml}{number}{button}</div>'
 
 
 def _code_toolbar(label: str, sublabel: str) -> str:
@@ -114,12 +122,16 @@ class FeynmanRenderer(RendererHTML):
     """RendererHTML with maths, executable fences and viz containers."""
 
     def __init__(
-        self, cell_results: list[CellResult], collector: AssetCollector | None = None
+        self,
+        cell_results: list[CellResult],
+        collector: AssetCollector | None = None,
+        targets: dict[str, Target] | None = None,
     ):
         super().__init__()
         self._cells = cell_results
         self._exec_cursor = 0
         self._collector = collector
+        self._targets = targets or {}
 
     # --- maths -------------------------------------------------------------
     def math_inline(self, tokens, idx, options, env):
@@ -133,7 +145,14 @@ class FeynmanRenderer(RendererHTML):
         return _equation_panel(tokens[idx].content)
 
     def math_block_label(self, tokens, idx, options, env):
-        return _equation_panel(tokens[idx].content)
+        # ``$$...$$ (eq-foo)`` -- the label rides in the token's info string.
+        target = self._targets.get(tokens[idx].info.strip())
+        return _equation_panel(tokens[idx].content, target)
+
+    # --- cross-references --------------------------------------------------
+    def xref(self, tokens, idx, options, env):
+        label = tokens[idx].content
+        return crossref.render_xref(self._targets.get(label), label)
 
     # --- code fences -------------------------------------------------------
     def fence(self, tokens, idx, options, env):
@@ -142,9 +161,16 @@ class FeynmanRenderer(RendererHTML):
         if _is_executable(info):
             return self._render_executable(token.content)
         lang = info.split()[0] if info else "text"
+        # A ``{#lst-...}`` id makes the block a numbered, linkable listing.
+        target = self._targets.get(crossref.brace_id(info) or "")
+        id_attr = ""
+        sublabel = "static"
+        if target is not None:
+            id_attr = f' id="{escape(target.label, quote=True)}"'
+            sublabel = target.marker  # "Listing N"
         return (
-            f'<figure class="feynman-code" data-lang="{lang}">'
-            f"{_code_toolbar(lang, 'static')}"
+            f'<figure class="feynman-code" data-lang="{lang}"{id_attr}>'
+            f"{_code_toolbar(lang, sublabel)}"
             f"{highlight_code(token.content, lang)}"
             f"</figure>"
         )
@@ -166,6 +192,9 @@ class FeynmanRenderer(RendererHTML):
             return ""
 
         label = opts.get("label")
+        # A ``fig-`` label makes the cell's output a numbered, linkable figure;
+        # the id anchors the whole cell so a reference lands on the card.
+        target = self._targets.get(str(label)) if label else None
         attrs = ' class="feynman-cell" data-lang="python"'
         if label:
             attrs += f' id="{escape(str(label), quote=True)}"'
@@ -174,10 +203,12 @@ class FeynmanRenderer(RendererHTML):
             parts.append(_code_toolbar("python", "executed at build time"))
             parts.append(highlight_code(code, "python"))
         if show_output and result is not None and result.html:
-            out_label = (
-                '<div class="output-label">'
-                f"{_OUTPUT_ICON}Output</div>"
+            caption = (
+                f'<span class="feynman-fig-label">{escape(target.marker)}</span>'
+                if target is not None
+                else "Output"
             )
+            out_label = f'<div class="output-label">{_OUTPUT_ICON}{caption}</div>'
             parts.append(
                 f'<div class="feynman-cell-output">{out_label}{result.html}</div>'
             )
@@ -186,7 +217,11 @@ class FeynmanRenderer(RendererHTML):
 
     # --- viz container -----------------------------------------------------
     def container_viz_open(self, tokens, idx, options, env):
-        return directives.render_viz_open(tokens[idx].info)
+        info = tokens[idx].info
+        viz_id = directives.parse_params(info).get("id")
+        target = self._targets.get(viz_id or "")
+        marker = target.marker if target is not None else ""
+        return directives.render_viz_open(info, marker=marker)
 
     def container_viz_close(self, tokens, idx, options, env):
         return directives.render_viz_close()
@@ -226,11 +261,18 @@ def render_document(
         if warning:
             print(f"warning: {warning}", file=sys.stderr)
 
+    # Cross-reference pre-pass: number every labelled element before rendering
+    # so a reference can point forward to a target not yet emitted. Warn about
+    # unknown label prefixes, duplicates, and references that resolve to nothing.
+    targets, label_warnings = crossref.collect_targets(tokens)
+    for warning in label_warnings + crossref.dangling_ref_warnings(tokens, targets):
+        print(f"warning: {warning}", file=sys.stderr)
+
     # Strip option lines before execution so ``#|`` directives never run.
     sources = _collect_executable_sources(tokens)
     exec_sources = [_cell_options(s)[1] for s in sources]
     cell_results = execute_cells(exec_sources)
 
-    md.renderer = FeynmanRenderer(cell_results, collector=collector)
+    md.renderer = FeynmanRenderer(cell_results, collector=collector, targets=targets)
     body = md.renderer.render(tokens, md.options, {})
     return doc, body

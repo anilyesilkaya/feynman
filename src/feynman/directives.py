@@ -34,6 +34,10 @@ from html import escape
 # validate matcher, but we tolerate it here too.
 _PARAMS_RE = re.compile(r"\{([^}]*)\}")
 _PAIR_RE = re.compile(r"(\w[\w-]*)\s*=\s*([^\s]+)")
+# A bare ``#slug`` token among the params gives the figure a cross-reference id,
+# e.g. ``{type=radial spokes=20 #viz-sweep}``. Matches the ``#id`` spelling used
+# for equations, listings and sections; resolved by :mod:`feynman.crossref`.
+_ID_RE = re.compile(r"(?:^|\s)#([A-Za-z0-9_-]+)")
 
 
 @dataclass(frozen=True)
@@ -103,6 +107,12 @@ def parse_params(info: str) -> dict:
         else:
             parsed[key] = value
 
+    # A bare ``#slug`` gives the figure a cross-reference id. It rides in the
+    # spec under ``id`` but is stripped before the client JSON (see render_spec).
+    id_match = _ID_RE.search(body)
+    if id_match:
+        parsed["id"] = id_match.group(1)
+
     vtype = parsed.get("type", DEFAULT_TYPE)
     # Unknown types fall back to the grid shape for defaults so the client's
     # grid fallback still gets a coherent spec; validate_viz warns separately.
@@ -137,26 +147,40 @@ def validate_viz(spec: dict) -> str | None:
     return None
 
 
-def render_viz_open(info: str) -> str:
-    """Return the opening markup for a ``:::viz`` directive info string."""
-    return render_spec(parse_params(info))
+def render_viz_open(info: str, marker: str = "") -> str:
+    """Return the opening markup for a ``:::viz`` directive info string.
+
+    ``marker`` is a cross-reference caption such as ``Figure 1``, supplied by the
+    renderer when the directive carries a ``#viz-...`` id (see
+    :mod:`feynman.crossref`); it is empty for an unlabelled figure.
+    """
+    return render_spec(parse_params(info), marker=marker)
 
 
-def render_spec(spec: dict) -> str:
+def render_spec(spec: dict, marker: str = "") -> str:
     """Return the opening markup for an already-parsed viz spec.
 
     The spec travels in a ``type="application/json"`` script so it survives
     static hosting untouched. The directive body (rendered by the inner tokens)
     becomes the ``<figcaption>``; :func:`render_viz_close` emits the closers.
+
+    A ``#viz-...`` id (parsed into ``spec['id']``) is placed on the wrapping
+    ``<figure>`` as the anchor and stripped from the client JSON, so the runtime
+    spec stays a pure description of the drawing.
     """
+    fig_id = spec.pop("id", None)
     spec_json = json.dumps(spec, separators=(",", ":"))
     label = escape(f"{spec['type']} visualisation, {spec['steps']} steps")
+    id_attr = f' id="{escape(fig_id, quote=True)}"' if fig_id else ""
+    caption_marker = (
+        f'<span class="feynman-fig-label">{escape(marker)}</span> ' if marker else ""
+    )
     return (
-        f'<figure class="feynman-viz-figure">'
+        f'<figure class="feynman-viz-figure"{id_attr}>'
         f'<feynman-viz aria-label="{label}">'
         f'<script type="application/json" class="feynman-viz-spec">{spec_json}</script>'
         f"</feynman-viz>"
-        f"<figcaption>"
+        f"<figcaption>{caption_marker}"
     )
 
 
