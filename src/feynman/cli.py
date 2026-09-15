@@ -27,6 +27,14 @@ def main(argv: list[str] | None = None) -> int:
         default=Path("_site"),
         help="Output directory (default: ./_site).",
     )
+    build.add_argument(
+        "--inline",
+        "--single-file",
+        dest="inline",
+        action="store_true",
+        help="Emit one self-contained HTML file (CSS, JS and images inlined) "
+        "instead of a portable folder with sidecar assets.",
+    )
 
     args = parser.parse_args(argv)
 
@@ -34,7 +42,7 @@ def main(argv: list[str] | None = None) -> int:
         if not args.source.is_file():
             print(f"error: no such file: {args.source}", file=sys.stderr)
             return 2
-        out_html = build_document(args.source, args.out)
+        out_html = build_document(args.source, args.out, inline=args.inline)
         print(f"built {out_html}")
         return 0
 

@@ -222,6 +222,11 @@ class WaveRenderer {
   }
 }
 
+// The client-side half of the viz registry. Its Python counterpart,
+// `VIZ_TYPES` in directives.py, is the build-time source of truth for which
+// `type=` values are valid and which params each takes; a `type=` with no entry
+// there is reported as a build warning. Adding a shape is one `VizType` entry
+// there plus one renderer here. An unknown type still falls back to the grid.
 const RENDERERS = { grid: GridRenderer, radial: RadialRenderer, wave: WaveRenderer };
 
 class FeynmanViz extends HTMLElement {

@@ -16,12 +16,15 @@ only stitches their captured output into the page in document order.
 
 from __future__ import annotations
 
+import sys
+
 from markdown_it.renderer import RendererHTML
 from markdown_it.token import Token
 
 from html import escape
 
 from feynman import directives
+from feynman.collect import AssetCollector
 from feynman.execute import CellResult, execute_cells
 from feynman.highlight import highlight_code
 from feynman.math import to_mathml
@@ -84,8 +87,11 @@ def _collect_executable_sources(tokens: list[Token]) -> list[str]:
 def _cell_options(source: str) -> tuple[dict, str]:
     """Split leading ``#| key: value`` option lines from a cell's source.
 
-    v1 understands one option, ``echo`` (bool). Unknown options are ignored but
-    still stripped from the displayed source.
+    Two boolean options are understood: ``echo`` (show the source, default true)
+    and ``output`` (show the captured output, default true). ``label`` sets a
+    stable ``id`` on the cell for linking. Unknown options are ignored but still
+    stripped from the displayed source. ``label`` is reserved for future use of
+    the value beyond the element id.
     """
     opts: dict = {}
     lines = source.splitlines()
@@ -94,9 +100,10 @@ def _cell_options(source: str) -> tuple[dict, str]:
         directive = lines[i].split("#|", 1)[1].strip()
         if ":" in directive:
             key, _, value = directive.partition(":")
-            key, value = key.strip(), value.strip().lower()
-            if value in ("true", "false"):
-                opts[key] = value == "true"
+            key, value = key.strip(), value.strip()
+            # Only fold case for the bool test, so a `label` keeps its casing.
+            if value.lower() in ("true", "false"):
+                opts[key] = value.lower() == "true"
             else:
                 opts[key] = value
         i += 1
@@ -106,10 +113,13 @@ def _cell_options(source: str) -> tuple[dict, str]:
 class FeynmanRenderer(RendererHTML):
     """RendererHTML with maths, executable fences and viz containers."""
 
-    def __init__(self, cell_results: list[CellResult]):
+    def __init__(
+        self, cell_results: list[CellResult], collector: AssetCollector | None = None
+    ):
         super().__init__()
         self._cells = cell_results
         self._exec_cursor = 0
+        self._collector = collector
 
     # --- maths -------------------------------------------------------------
     def math_inline(self, tokens, idx, options, env):
@@ -148,17 +158,28 @@ class FeynmanRenderer(RendererHTML):
         )
         self._exec_cursor += 1
 
-        parts: list[str] = ['<figure class="feynman-cell" data-lang="python">']
-        if opts.get("echo", True):
+        show_code = opts.get("echo", True)
+        show_output = opts.get("output", True)
+        # `#| echo: false` + `#| output: false` runs the cell purely for its
+        # side effects on later cells; render nothing rather than an empty card.
+        if not show_code and not show_output:
+            return ""
+
+        label = opts.get("label")
+        attrs = ' class="feynman-cell" data-lang="python"'
+        if label:
+            attrs += f' id="{escape(str(label), quote=True)}"'
+        parts: list[str] = [f"<figure{attrs}>"]
+        if show_code:
             parts.append(_code_toolbar("python", "executed at build time"))
             parts.append(highlight_code(code, "python"))
-        if result is not None and result.html:
-            label = (
+        if show_output and result is not None and result.html:
+            out_label = (
                 '<div class="output-label">'
                 f"{_OUTPUT_ICON}Output</div>"
             )
             parts.append(
-                f'<div class="feynman-cell-output">{label}{result.html}</div>'
+                f'<div class="feynman-cell-output">{out_label}{result.html}</div>'
             )
         parts.append("</figure>")
         return "".join(parts)
@@ -170,18 +191,46 @@ class FeynmanRenderer(RendererHTML):
     def container_viz_close(self, tokens, idx, options, env):
         return directives.render_viz_close()
 
+    # --- images ------------------------------------------------------------
+    def image(self, tokens, idx, options, env):
+        # Route the src through the collector (copy locally / inline as a data
+        # URI); remote and missing refs come back unchanged. Build-time figures
+        # from executed cells are injected as raw HTML and never reach here.
+        if self._collector is not None:
+            src = tokens[idx].attrGet("src")
+            if src is not None:
+                tokens[idx].attrSet("src", self._collector.resolve(src))
+        return super().image(tokens, idx, options, env)
 
-def render_document(text: str) -> tuple[Document, str]:
-    """Parse and render a document; return metadata and HTML body."""
+
+def _collect_viz_infos(tokens: list[Token]) -> list[str]:
+    return [t.info for t in tokens if t.type == "container_viz_open"]
+
+
+def render_document(
+    text: str, *, collector: AssetCollector | None = None
+) -> tuple[Document, str]:
+    """Parse and render a document; return metadata and HTML body.
+
+    ``collector`` receives every local image reference; when ``None`` (the
+    default) image refs are left untouched.
+    """
     doc = split_front_matter(text)
     md = make_md()
     tokens = md.parse(doc.body)
+
+    # Warn once, at build time, about any viz directive naming an unknown type
+    # (the reader would silently fall back to the grid renderer otherwise).
+    for info in _collect_viz_infos(tokens):
+        warning = directives.validate_viz(directives.parse_params(info))
+        if warning:
+            print(f"warning: {warning}", file=sys.stderr)
 
     # Strip option lines before execution so ``#|`` directives never run.
     sources = _collect_executable_sources(tokens)
     exec_sources = [_cell_options(s)[1] for s in sources]
     cell_results = execute_cells(exec_sources)
 
-    md.renderer = FeynmanRenderer(cell_results)
+    md.renderer = FeynmanRenderer(cell_results, collector=collector)
     body = md.renderer.render(tokens, md.options, {})
     return doc, body

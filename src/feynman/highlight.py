@@ -4,7 +4,7 @@ Code is tokenised once at build time and emitted as static HTML. Two Pygments
 styles are baked into the stylesheet -- a light one under ``:root`` and a dark
 one under ``[data-theme="dark"]``, both scoped to ``.highlight`` -- so switching
 theme is pure CSS with no runtime highlighter, the same trick the reference site
-achieves with Shiki's CSS variables (see ``docs/kvcache-teardown.md``).
+(kvcache.cobanov.dev) achieves with Shiki's CSS variables.
 """
 
 from __future__ import annotations

@@ -8,8 +8,13 @@
   {%- if subtitle %}
   <meta name="description" content="{{ subtitle }}">
   {%- endif %}
-  <link rel="stylesheet" href="{{ assets.pygments }}">
-  <link rel="stylesheet" href="{{ assets.css }}">
+  {%- if inline %}
+  <style>{{ assets.pygments.content }}</style>
+  <style>{{ assets.css.content }}</style>
+  {%- else %}
+  <link rel="stylesheet" href="{{ assets.pygments.href }}">
+  <link rel="stylesheet" href="{{ assets.css.href }}">
+  {%- endif %}
   <script>
     // Add the `js` class and apply the stored theme before first paint so
     // JS-only chrome appears without a flash of the wrong theme.
@@ -19,7 +24,11 @@
       if (t === 'dark' || t === 'light') document.documentElement.dataset.theme = t;
     } catch (e) {}
   </script>
-  <script type="module" src="{{ assets.js }}"></script>
+  {%- if inline %}
+  <script type="module">{{ assets.js.content }}</script>
+  {%- else %}
+  <script type="module" src="{{ assets.js.href }}"></script>
+  {%- endif %}
 </head>
 <body id="top">
   <a class="skip-link" href="#notebook">Skip to content</a>

@@ -2,7 +2,7 @@
 
 We render maths to MathML at build time. The browser draws it with no runtime
 JavaScript or CSS, and assistive technology can read it -- unlike the reference
-site (see ``docs/kvcache-teardown.md``), whose KaTeX HTML is ``aria-hidden``.
+site (kvcache.cobanov.dev), whose KaTeX HTML is ``aria-hidden``.
 """
 
 from __future__ import annotations
