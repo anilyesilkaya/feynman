@@ -17,6 +17,8 @@ from mdit_py_plugins.container import container_plugin
 from mdit_py_plugins.dollarmath import dollarmath_plugin
 from mdit_py_plugins.front_matter import front_matter_plugin
 
+from feynman import crossref
+
 VIZ_NAME = "viz"
 
 
@@ -36,6 +38,11 @@ def make_md() -> MarkdownIt:
         .use(anchors_plugin, min_level=2, max_level=3, permalink=False)
         .use(container_plugin, VIZ_NAME, validate=_viz_validate)
     )
+    # Cross-referencing: `@label` references (an inline rule, before emphasis so
+    # it claims the `@`) and explicit `{#sec-...}` heading ids (a core rule after
+    # `anchor`, so an author's section label overrides the auto-slug).
+    md.inline.ruler.before("emphasis", "xref", crossref.xref_rule)
+    md.core.ruler.after("anchor", "section_id", crossref.section_id_rule)
     return md
 
 

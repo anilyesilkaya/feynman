@@ -65,3 +65,22 @@ def test_render_viz_open_emits_spec_and_label():
     assert 'class="feynman-viz-spec"' in markup
     assert '"type":"radial"' in markup
     assert 'aria-label="radial visualisation, 20 steps"' in markup
+
+
+def test_viz_id_parsed_from_hash_token():
+    spec = parse_params("viz {type=radial spokes=20 #viz-sweep}")
+    assert spec["id"] == "viz-sweep"
+    assert spec["type"] == "radial" and spec["spokes"] == 20
+
+
+def test_viz_id_on_figure_not_in_spec_json():
+    # The id anchors the wrapping <figure>; it must not leak into the client
+    # JSON spec, which stays a pure description of the drawing.
+    markup = render_viz_open("viz {type=grid rows=6 #viz-demo}")
+    assert '<figure class="feynman-viz-figure" id="viz-demo">' in markup
+    assert '"id"' not in markup
+
+
+def test_viz_marker_renders_in_caption():
+    markup = render_viz_open("viz {type=grid #viz-demo}", marker="Figure 2")
+    assert '<span class="feynman-fig-label">Figure 2</span>' in markup

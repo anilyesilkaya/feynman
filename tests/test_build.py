@@ -75,3 +75,25 @@ def test_code_cards_have_copy_toolbar(built_html):
     # Both static and executed code cards get a toolbar with a copy button.
     assert "code-toolbar" in built_html
     assert "copy-button" in built_html
+
+
+def test_cross_references_resolve(built_html):
+    # References render as numbered links to their targets' anchors, and the
+    # targets carry the matching ids. The demo labels an equation, a listing,
+    # a figure cell, several viz blocks and its sections.
+    assert 'class="feynman-xref"' in built_html
+    assert 'href="#eq-fourier"' in built_html
+    assert 'id="eq-fourier"' in built_html
+    assert 'href="#lst-greet"' in built_html
+    assert 'id="lst-greet"' in built_html
+    # The shared figure counter spans the cell figure and the viz blocks.
+    assert 'href="#fig-lengths"' in built_html
+    assert 'href="#viz-grid"' in built_html
+    assert 'id="viz-grid"' in built_html
+    assert "Equation 1" in built_html
+    assert "Figure 1" in built_html
+
+
+def test_no_broken_references_in_demo(built_html):
+    # The demo must not ship any dangling references.
+    assert "feynman-xref-broken" not in built_html
