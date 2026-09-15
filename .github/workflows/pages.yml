@@ -41,6 +41,9 @@ jobs:
           feynman build examples/demo.md -o _site
           # Pages serves index.html at the site root.
           cp _site/demo.html _site/index.html
+          # Custom domain: emitted into the artifact so it survives every
+          # deploy (an Actions deploy would otherwise drop the Pages CNAME).
+          echo "feynman.yesilkaya.dev" > _site/CNAME
 
       - uses: actions/upload-pages-artifact@v3
         with:

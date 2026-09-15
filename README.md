@@ -4,7 +4,7 @@ An authoring system for interactive technical explanations — a Python-native
 static-site generator that turns one Markdown document into a self-contained,
 themeable HTML page.
 
-**[View the live demo →](https://anilyesilkaya.github.io/feynman/)**
+**[View the live demo →](https://feynman.yesilkaya.dev/)**
 
 Feynman is for articles where the reader should be able to do more than read:
 follow the mathematics, read the code, see the code's output, and drive a
@@ -77,7 +77,9 @@ GitHub Pages on every push to `main`. To enable it once:
 1. **Settings → Pages → Build and deployment → Source → GitHub Actions.**
 2. Push to `main` (or re-run the workflow).
 
-The demo then goes live at `https://<user>.github.io/feynman/`.
+The demo then goes live at `https://<user>.github.io/feynman/`, or at the
+custom domain the workflow writes into the site's `CNAME`
+(currently `https://feynman.yesilkaya.dev/`).
 
 ## Development
 
