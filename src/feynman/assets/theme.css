@@ -364,8 +364,26 @@ feynman-viz {
 }
 
 /* viz internals (rendered by feynman.js) */
-.fv-grid { width: 100%; height: auto; display: block; max-width: 420px; margin-inline: auto; }
+.fv-grid, .fv-radial, .fv-wave {
+  width: 100%; height: auto; display: block; margin-inline: auto;
+}
+.fv-grid { max-width: 420px; }
+.fv-radial { max-width: 340px; }
+.fv-wave { max-width: 460px; }
 .fv-cell { transition: fill 200ms ease, opacity 200ms ease; }
+
+/* radial sweep */
+.fv-ring { fill: none; stroke: var(--line); stroke-width: 1; }
+.fv-dot { transition: fill 200ms ease, opacity 200ms ease; }
+.fv-sweep {
+  stroke: var(--accent); stroke-width: 2; stroke-linecap: round;
+  opacity: 0.85; transition: none;
+}
+
+/* travelling wave */
+.fv-axis { stroke: var(--line); stroke-width: 1; stroke-dasharray: 3 4; }
+.fv-wave-path { stroke: var(--accent); stroke-width: 2.5; stroke-linejoin: round; }
+.fv-wave-dot { fill: var(--accent); }
 .fv-controls {
   display: flex; align-items: center; gap: 0.75rem;
   margin-top: 16px; padding-top: 16px;

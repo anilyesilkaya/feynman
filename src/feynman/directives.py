@@ -30,8 +30,11 @@ from html import escape
 _PARAMS_RE = re.compile(r"\{([^}]*)\}")
 _PAIR_RE = re.compile(r"(\w[\w-]*)\s*=\s*([^\s]+)")
 
-INT_PARAMS = {"rows", "cols", "steps"}
+# Any numeric parameter across the renderer types (grid / radial / wave).
+INT_PARAMS = {"rows", "cols", "steps", "rings", "spokes", "amp", "freq"}
 DEFAULTS = {"type": "grid", "rows": 8, "cols": 8, "pattern": "causal"}
+# Per-type fallback for the step count when the author omits ``steps``.
+_STEP_FALLBACK = {"grid": "rows", "radial": "spokes", "wave": None}
 
 
 def parse_params(info: str) -> dict:
@@ -47,8 +50,10 @@ def parse_params(info: str) -> dict:
                 continue
         else:
             spec[key] = value
-    # Number of animation steps defaults to the row count for grid patterns.
-    spec.setdefault("steps", spec.get("rows", DEFAULTS["rows"]))
+    # Number of animation steps defaults per type: rows for grids, spokes for
+    # radial sweeps, and a sensible constant for the (dimensionless) wave.
+    key = _STEP_FALLBACK.get(spec.get("type"), "rows")
+    spec.setdefault("steps", spec.get(key, 8) if key else 24)
     return spec
 
 

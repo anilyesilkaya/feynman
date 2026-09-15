@@ -82,42 +82,36 @@ there is no image file to manage and no plotting code running for the reader.
 ## Interactive visualisations
 
 The one bit of JavaScript feynman ships drives visualisations built on a single
-idea: **every visualisation is a pure function of an integer step.** A pattern is
-just a rule `(row, col, step) → on?`; the same machinery — play, prev, next, and
-a scrub slider — drives them all. The same step always produces the same frame,
-so a visualisation is deterministic and replayable.
+idea: **every visualisation is a pure function of an integer step.** A `type`
+selects a renderer; the same machinery — play, prev, next, and a scrub slider —
+drives them all. The same step always produces the same frame, so a
+visualisation is deterministic and replayable.
 
-Here are four patterns from the same engine. Press **play** or drag a slider on
-any of them.
+Different shapes, one engine. Press **play** or drag a slider on any of them.
 
-A **fill** sweeps in one column per step — the simplest possible rule:
-
-::: viz {type=grid rows=8 cols=12 pattern=fill steps=12 fps=4}
-`col < step` — one column lights up per step. The plainest rule there is.
-:::
-
-A **diagonal** wavefront moves across the grid on the anti-diagonal:
+A **box grid** lights cells by a rule `(row, col, step) → on?`. This one reveals
+a diagonal wavefront:
 
 ::: viz {type=grid rows=10 cols=10 pattern=diagonal steps=19 fps=5}
-`row + col < step` — a wavefront advancing along the diagonal.
+`row + col < step` — a wavefront advancing along the diagonal. Swap the rule and the same grid becomes a fill, a causal mask, or a quarter circle.
 :::
 
-A **causal mask** reveals a lower-triangular region one row at a time — the shape
-behind attention masks in transformers:
+A **radial sweep** arranges points in rings and spokes and sweeps a line around
+like radar, lighting each spoke as it passes:
 
-::: viz {type=grid rows=8 cols=8 pattern=causal steps=8 fps=3}
-`col ≤ row and row < step` — each row attends only to itself and earlier positions.
+::: viz {type=radial rings=5 spokes=20 fps=8}
+The sweep advances one spoke per step; a full turn lights the whole field. Polar, not rectangular — no boxes in sight.
 :::
 
-A **quarter circle** reveals column by column; the readout tracks the fraction of
-revealed cells that fall inside the arc, which approaches π/4:
+A **travelling wave** plots a sine curve whose phase advances each step, so the
+whole waveform slides to the right:
 
-::: viz {type=grid rows=16 cols=16 pattern=circle steps=16 fps=6}
-Cells whose centre lies inside the quarter circle. The live estimate of π emerges as more columns are revealed.
+::: viz {type=wave freq=2 amp=54 steps=32 fps=12}
+y = sin(2πfx − φ), with φ advancing per step. The dot tracks the wave's value at the centre line.
 :::
 
-Adding a new visual behaviour is adding one entry to a pattern table — the
-driving machinery never changes.
+Adding a new shape is adding one renderer to the registry — the play / scrub /
+seek machinery never changes.
 
 That is the whole demo: prose and maths, code you can read, code that ran, and
 pictures you can drive — one connected page, generated from plain Markdown.
