@@ -410,7 +410,11 @@ feynman-viz {
 }
 @media (max-width: 820px) {
   .notebook-layout { display: block; padding-top: 42px; }
-  .contents { display: none; }
+  /* Compound selector (.contents.js-only) so this beats `.js .js-only`, which
+     is equally specific but sets display:inline-flex; otherwise the sticky TOC
+     stays visible and overlays the prose on mobile. */
+  .contents,
+  .contents.js-only { display: none; }
   .feynman-prose { max-width: 100%; }
   .highlight pre { font-size: 12px; }
 }
