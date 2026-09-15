@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="{{ theme }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>{{ title }}</title>
+  {%- if subtitle %}
+  <meta name="description" content="{{ subtitle }}">
+  {%- endif %}
+  <link rel="stylesheet" href="{{ assets.pygments }}">
+  <link rel="stylesheet" href="{{ assets.css }}">
+  <script>
+    // Add the `js` class and apply the stored theme before first paint so
+    // JS-only chrome appears without a flash of the wrong theme.
+    document.documentElement.classList.add('js');
+    try {
+      var t = localStorage.getItem('feynman-theme');
+      if (t === 'dark' || t === 'light') document.documentElement.dataset.theme = t;
+    } catch (e) {}
+  </script>
+  <script type="module" src="{{ assets.js }}"></script>
+</head>
+<body id="top">
+  <a class="skip-link" href="#notebook">Skip to content</a>
+  <div class="reading-progress" aria-hidden="true"></div>
+
+  <header class="feynman-header">
+    <div class="feynman-container feynman-header-inner">
+      <div class="brand">
+        <a class="feynman-wordmark" href="#top" aria-label="feynman, back to top">feynman<b>.</b></a>
+        <span class="brand-tag">{{ tagline }}</span>
+      </div>
+      <nav class="header-actions" aria-label="Page navigation">
+        <button class="icon-button feynman-theme-toggle js-only" type="button" aria-label="Switch to dark theme" aria-pressed="false">
+          <svg class="icon moon-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 13.2A8.6 8.6 0 0 1 10.8 3.5 8.7 8.7 0 1 0 20.5 13.2Z"/></svg>
+          <svg class="icon sun-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5"/></svg>
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="feynman-container">
+    <div class="feynman-hero">
+      <p class="eyebrow hero-kicker">{{ kicker }}</p>
+      <h1 class="feynman-title">{{ title }}</h1>
+      {%- if subtitle %}
+      <p class="feynman-subtitle">{{ subtitle }}</p>
+      {%- endif %}
+    </div>
+
+    <div class="notebook-layout" id="notebook">
+      <aside class="contents js-only" aria-hidden="true">
+        <nav aria-label="Table of contents">
+          <h2 class="eyebrow">In this notebook</h2>
+          <ol></ol>
+        </nav>
+      </aside>
+      <article class="feynman-prose">
+        {{ body }}
+      </article>
+    </div>
+  </main>
+
+  <footer class="feynman-footer">
+    <div class="feynman-container footer-inner">
+      <span>Built with <a href="#top">feynman.</a></span>
+      <span>Ideas, made understandable.</span>
+    </div>
+  </footer>
+
+  <div class="toast" role="status" aria-live="polite"></div>
+</body>
+</html>
