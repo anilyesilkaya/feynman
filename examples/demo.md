@@ -1,9 +1,11 @@
 ---
-title: A feynman demo
+title: A Feynman demo.
+hero_title: 'A Feynman<br><em>demo.</em>'
 subtitle: One page exercising every capability — prose and mathematics, highlighted code, Python executed at build time, and a step-driven visualisation. No lesson, just the features.
 theme: light
 kicker: A small notebook, four capabilities
 tagline: Ideas, made understandable.
+source_url: https://github.com/anilyesilkaya/feynman/blob/main/examples/demo.md
 ---
 
 ## Prose and mathematics
@@ -77,16 +79,45 @@ plt.show()
 The figure above was produced by Python at build time and embedded directly —
 there is no image file to manage and no plotting code running for the reader.
 
-## An interactive visualisation
+## Interactive visualisations
 
 The one bit of JavaScript feynman ships drives visualisations built on a single
-idea: **every visualisation is a pure function of an integer step.** This grid
-reveals itself one diagonal wavefront at a time. Press **play**, or scrub the
-slider — the same frame is produced for the same step, every time.
+idea: **every visualisation is a pure function of an integer step.** A pattern is
+just a rule `(row, col, step) → on?`; the same machinery — play, prev, next, and
+a scrub slider — drives them all. The same step always produces the same frame,
+so a visualisation is deterministic and replayable.
 
-::: viz {type=grid rows=10 cols=10 pattern=diagonal steps=19 fps=4}
-Each step advances a diagonal wavefront across the grid. The picture is a pure function of the step number — deterministic, replayable, and driven entirely by the slider.
+Here are four patterns from the same engine. Press **play** or drag a slider on
+any of them.
+
+A **fill** sweeps in one column per step — the simplest possible rule:
+
+::: viz {type=grid rows=8 cols=12 pattern=fill steps=12 fps=4}
+`col < step` — one column lights up per step. The plainest rule there is.
 :::
 
-That is the whole demo: prose and maths, code you can read, code that ran, and a
-picture you can drive — one connected page, generated from plain Markdown.
+A **diagonal** wavefront moves across the grid on the anti-diagonal:
+
+::: viz {type=grid rows=10 cols=10 pattern=diagonal steps=19 fps=5}
+`row + col < step` — a wavefront advancing along the diagonal.
+:::
+
+A **causal mask** reveals a lower-triangular region one row at a time — the shape
+behind attention masks in transformers:
+
+::: viz {type=grid rows=8 cols=8 pattern=causal steps=8 fps=3}
+`col ≤ row and row < step` — each row attends only to itself and earlier positions.
+:::
+
+A **quarter circle** reveals column by column; the readout tracks the fraction of
+revealed cells that fall inside the arc, which approaches π/4:
+
+::: viz {type=grid rows=16 cols=16 pattern=circle steps=16 fps=6}
+Cells whose centre lies inside the quarter circle. The live estimate of π emerges as more columns are revealed.
+:::
+
+Adding a new visual behaviour is adding one entry to a pattern table — the
+driving machinery never changes.
+
+That is the whole demo: prose and maths, code you can read, code that ran, and
+pictures you can drive — one connected page, generated from plain Markdown.

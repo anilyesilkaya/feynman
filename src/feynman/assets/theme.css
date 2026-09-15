@@ -129,9 +129,18 @@ svg { display: block; max-width: 100%; }
 /* --- header ---------------------------------------------------------- */
 .feynman-header {
   position: sticky; top: 0; z-index: 20;
+  /* Opaque fallback first: browsers that don't parse color-mix (or drop the
+     translucent value) keep a solid header so content never shows through. */
+  background: var(--paper);
   background: color-mix(in srgb, var(--paper) 90%, transparent);
+  -webkit-backdrop-filter: blur(8px);
   backdrop-filter: blur(8px);
   border-bottom: 1px solid var(--line);
+}
+/* When the backdrop blur isn't available, keep the header fully opaque so it
+   can't reveal the content scrolling beneath it. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .feynman-header { background: var(--paper); }
 }
 .feynman-header-inner {
   display: flex; align-items: center; justify-content: space-between;
@@ -179,6 +188,15 @@ svg { display: block; max-width: 100%; }
   font-size: 16px; line-height: 1.8; color: var(--body);
   max-width: 40rem; margin: 0;
 }
+.hero-source { margin: 24px 0 0; }
+.hero-source a {
+  display: inline-flex; align-items: center; gap: 8px;
+  font: 11px var(--mono); letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--muted);
+  padding-bottom: 3px; border-bottom: 1px solid var(--line);
+}
+.hero-source a:hover { color: var(--accent); border-color: var(--accent); }
+.hero-source .icon { width: 14px; height: 14px; }
 
 /* --- notebook layout: sticky TOC + prose ----------------------------- */
 .notebook-layout {

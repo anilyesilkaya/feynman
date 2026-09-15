@@ -43,9 +43,17 @@
   <main class="feynman-container">
     <div class="feynman-hero">
       <p class="eyebrow hero-kicker">{{ kicker }}</p>
-      <h1 class="feynman-title">{{ title }}</h1>
+      <h1 class="feynman-title">{{ hero_title }}</h1>
       {%- if subtitle %}
       <p class="feynman-subtitle">{{ subtitle }}</p>
+      {%- endif %}
+      {%- if source_url %}
+      <p class="hero-source">
+        <a href="{{ source_url }}">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3h7v7m0-7L10 14M19 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"/></svg>
+          View the source Markdown
+        </a>
+      </p>
       {%- endif %}
     </div>
 

@@ -36,13 +36,18 @@ def build_document(source: Path, out_dir: Path) -> Path:
 
     template = Environment(autoescape=False).from_string(_asset_text(TEMPLATE_NAME))
     meta = doc.meta or {}
+    title = meta.get("title", source.stem)
     html = template.render(
-        title=meta.get("title", source.stem),
+        title=title,
         theme=meta.get("theme", "light"),
         subtitle=meta.get("subtitle", ""),
         # Small bits of chrome, front-matter driven with neutral defaults.
         tagline=meta.get("tagline", "Ideas, made understandable."),
         kicker=meta.get("kicker", "A feynman notebook"),
+        # Optional hero overrides: `hero_title` is raw HTML for the display
+        # heading (e.g. line breaks / emphasis); `source_url` links the source.
+        hero_title=meta.get("hero_title", "") or title,
+        source_url=meta.get("source_url", ""),
         body=body,
         assets={"css": "theme.css", "pygments": PYGMENTS_CSS_NAME, "js": "feynman.js"},
     )
