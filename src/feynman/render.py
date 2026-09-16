@@ -23,7 +23,7 @@ from markdown_it.token import Token
 
 from html import escape
 
-from feynman import crossref, directives
+from feynman import boxes, crossref, directives
 from feynman.collect import AssetCollector
 from feynman.crossref import Target
 from feynman.execute import CellResult, execute_cells
@@ -226,6 +226,13 @@ class FeynmanRenderer(RendererHTML):
     def container_viz_close(self, tokens, idx, options, env):
         return directives.render_viz_close()
 
+    # --- callout boxes -----------------------------------------------------
+    def container_box_open(self, tokens, idx, options, env):
+        return boxes.render_box_open(tokens[idx].info)
+
+    def container_box_close(self, tokens, idx, options, env):
+        return boxes.render_box_close()
+
     # --- images ------------------------------------------------------------
     def image(self, tokens, idx, options, env):
         # Route the src through the collector (copy locally / inline as a data
@@ -240,6 +247,10 @@ class FeynmanRenderer(RendererHTML):
 
 def _collect_viz_infos(tokens: list[Token]) -> list[str]:
     return [t.info for t in tokens if t.type == "container_viz_open"]
+
+
+def _collect_box_infos(tokens: list[Token]) -> list[str]:
+    return [t.info for t in tokens if t.type == "container_box_open"]
 
 
 def render_document(
@@ -258,6 +269,13 @@ def render_document(
     # (the reader would silently fall back to the grid renderer otherwise).
     for info in _collect_viz_infos(tokens):
         warning = directives.validate_viz(directives.parse_params(info))
+        if warning:
+            print(f"warning: {warning}", file=sys.stderr)
+
+    # Likewise warn about a callout box naming an unknown variant (the reader
+    # would silently get the info style otherwise).
+    for info in _collect_box_infos(tokens):
+        warning = boxes.validate_box(boxes.parse_box_params(info))
         if warning:
             print(f"warning: {warning}", file=sys.stderr)
 

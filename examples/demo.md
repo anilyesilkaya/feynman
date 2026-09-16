@@ -3,7 +3,7 @@ title: A Feynman demo.
 hero_title: 'A Feynman<br><em>demo.</em>'
 subtitle: One page exercising every capability — prose and mathematics, highlighted code, Python executed at build time, and a step-driven visualisation. No lesson, just the features.
 theme: light
-kicker: A small notebook, four capabilities
+kicker: A small notebook, endless possibilities
 tagline: Ideas, made understandable.
 source_url: https://github.com/anilyesilkaya/feynman/blob/main/examples/demo.md
 ---
@@ -117,6 +117,30 @@ seek machinery never changes. Note that the three figures above — @viz-grid,
 @viz-radial and @viz-wave — share one figure counter with @fig-lengths, so a
 reader sees a single "Figure N" sequence across executed charts and driven
 visualisations alike.
+
+## Callout boxes {#sec-box}
+
+Set a point apart with a `:::box`. One directive, three variants chosen by
+`type` — `info`, `warning`, `error` — each with its own colour and icon drawn
+from the theme, so a box recolours correctly in light and dark. The body is
+ordinary Markdown, so a callout can hold formatting, lists, code and even a
+cross-reference back to @sec-viz.
+
+::: box {type=warning title="Please Note"}
+A **warning** box highlights an important caveat or limitation — something worth
+weighing before you go on.
+:::
+
+::: box {type=error title="Don't do that"}
+An **error** box flags a mistake to avoid — a coloured rule, a matching icon,
+and your prose inside.
+:::
+
+::: box {type=info}
+An **info** box offers a supporting aside. This one has no title, so its icon
+alone marks the variant; add a quoted `title=` and it gains a header row whose
+text may contain spaces.
+:::
 
 ## Cross-references {#sec-xref}
 
