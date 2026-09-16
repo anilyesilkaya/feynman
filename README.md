@@ -38,6 +38,11 @@ browser.
   "Figure N" counter as executed charts and `:::viz` blocks via a `#fig-` id.
   Inlining (rather than an `<img>`) lets an optional `theme=auto` recolour
   ink/paper-toned strokes and fills to follow the light/dark theme.
+- **Draw figures in-browser.** `feynman draw` launches the bundled
+  [svg-canvas](https://github.com/anilyesilkaya/svg-canvas) editor — a
+  zero-dependency SVG drawing tool — on localhost. Draw, export the SVG, and
+  embed it with `:::figure`. The editor is decoupled: it never touches your
+  documents, and nothing is shipped to the reader.
 
 The look is a warm "printed notebook": paper/ink palette, serif display type,
 mono labels, a sticky table of contents, a reading-progress bar, and a pure-CSS
@@ -91,6 +96,32 @@ source_url: https://…/demo.md    # optional "view source" link in the hero
 
 All fields are optional; only `title` is really needed.
 
+### Drawing figures
+
+Diagrams are drawn in a bundled copy of
+[svg-canvas](https://github.com/anilyesilkaya/svg-canvas), a small
+zero-dependency in-browser SVG editor. Launch it from feynman:
+
+```bash
+feynman draw                 # serves on http://127.0.0.1:8737 and opens a browser
+feynman draw --port 9000     # use a specific port (0 picks a free one)
+feynman draw --no-browser    # print the URL only (headless / CI)
+```
+
+Draw your figure, then use the editor's **Download** (saves `canvas.svg`) or
+**Copy** button. Save the file next to your document — e.g.
+`figures/diagram.svg` — and embed it:
+
+```
+::: figure {src=figures/diagram.svg theme=auto #fig-diagram}
+A caption in **Markdown**.
+:::
+```
+
+The editor is a *launch-only* extension — feynman just serves it. There is no
+save-back into your document, so the draw → export → `:::figure` step is
+explicit. Press Ctrl+C in the terminal to stop the server.
+
 ## Deployment
 
 `.github/workflows/pages.yml` builds `examples/demo.md` in CI and publishes it to
@@ -105,7 +136,11 @@ custom domain the workflow writes into the site's `CNAME`
 
 ## Development
 
+The SVG editor ships as a git submodule. After cloning, initialise it (or clone
+with `--recurse-submodules`) so `feynman draw` has files to serve:
+
 ```bash
+git submodule update --init src/feynman/editor
 pip install ".[dev]"
 pytest
 ```
@@ -118,4 +153,5 @@ collector (single-file output and local-image handling).
 
 ## License
 
-MIT.
+MIT. Bundles [svg-canvas](https://github.com/anilyesilkaya/svg-canvas) (also
+MIT) as a submodule under `src/feynman/editor/`; see its `LICENSE`.

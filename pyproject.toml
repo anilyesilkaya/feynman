@@ -33,4 +33,17 @@ feynman = "feynman.cli:main"
 where = ["src"]
 
 [tool.setuptools.package-data]
-feynman = ["assets/*.html.j2", "assets/*.css", "assets/*.js"]
+# The bundled svg-canvas editor (git submodule at src/feynman/editor) ships as
+# data, not an importable package. Its js/ dir is flat, so explicit one-level
+# globs suffice -- no recursive ** (which would need setuptools>=62.3). If the
+# editor ever grows nested asset dirs, switch to "editor/**/*" and bump the
+# build requirement. README and _verify_import.py are intentionally omitted.
+feynman = [
+    "assets/*.html.j2",
+    "assets/*.css",
+    "assets/*.js",
+    "editor/index.html",
+    "editor/styles.css",
+    "editor/LICENSE",
+    "editor/js/*.js",
+]
