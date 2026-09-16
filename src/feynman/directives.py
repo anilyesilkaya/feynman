@@ -79,6 +79,18 @@ VIZ_TYPES: dict[str, VizType] = {
         step_source=None,
         default_steps=24,
     ),
+    "fourier": VizType(
+        "fourier",
+        frozenset({"terms", "amp", "freq", "steps"}),
+        {"terms": 8, "amp": 54, "freq": 1, "target": "square"},
+        step_source="terms",
+    ),
+    "galton": VizType(
+        "galton",
+        frozenset({"rows", "balls", "steps"}),
+        {"rows": 12, "balls": 120},
+        step_source="balls",
+    ),
 }
 
 DEFAULT_TYPE = "grid"

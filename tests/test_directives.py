@@ -29,10 +29,11 @@ def test_int_coercion_and_bad_value_skipped():
 
 
 def test_step_fallback_per_type():
-    # grid -> rows, radial -> spokes, wave -> constant default.
+    # grid -> rows, radial -> spokes, wave -> constant default, fourier -> terms.
     assert parse_params("viz {type=grid rows=12}")["steps"] == 12
     assert parse_params("viz {type=radial spokes=20}")["steps"] == 20
     assert parse_params("viz {type=wave}")["steps"] == 24
+    assert parse_params("viz {type=fourier terms=10}")["steps"] == 10
 
 
 def test_explicit_steps_wins():
@@ -43,6 +44,37 @@ def test_malformed_braces_fall_back_to_defaults():
     # No closing brace: nothing is parsed, defaults apply.
     spec = parse_params("viz {type=grid rows=4")
     assert spec["type"] == "grid" and spec["rows"] == 8
+
+
+def test_fourier_defaults_and_step_source():
+    spec = parse_params("viz {type=fourier}")
+    assert spec["type"] == "fourier"
+    assert spec["terms"] == 8 and isinstance(spec["terms"], int)
+    assert spec["amp"] == 54 and spec["freq"] == 1
+    assert spec["target"] == "square"  # a string default, not int-coerced
+    assert spec["steps"] == 8  # step_source="terms"
+
+
+def test_fourier_explicit_steps_wins_over_terms():
+    assert parse_params("viz {type=fourier terms=12}")["steps"] == 12
+    assert parse_params("viz {type=fourier terms=12 steps=6}")["steps"] == 6
+
+
+def test_fourier_target_kept_as_string():
+    assert parse_params("viz {type=fourier target=triangle}")["target"] == "triangle"
+
+
+def test_galton_defaults_and_step_source():
+    spec = parse_params("viz {type=galton}")
+    assert spec["type"] == "galton"
+    assert spec["rows"] == 12 and isinstance(spec["rows"], int)
+    assert spec["balls"] == 120 and isinstance(spec["balls"], int)
+    assert spec["steps"] == 120  # step_source="balls"
+
+
+def test_galton_balls_drives_steps_and_explicit_steps_wins():
+    assert parse_params("viz {type=galton balls=200}")["steps"] == 200
+    assert parse_params("viz {type=galton balls=200 steps=50}")["steps"] == 50
 
 
 def test_validate_known_types_ok():

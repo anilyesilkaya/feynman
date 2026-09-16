@@ -61,6 +61,10 @@ def test_viz_component_present(built_html):
     assert "<feynman-viz" in built_html
     assert "feynman-viz-spec" in built_html
     assert '"pattern":"diagonal"' in built_html
+    # The demo exercises every registered viz type, including the Fourier
+    # synthesiser and the Galton board.
+    assert '"type":"fourier"' in built_html
+    assert '"type":"galton"' in built_html
 
 
 def test_callout_boxes_present(built_html):
