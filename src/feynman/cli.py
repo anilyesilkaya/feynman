@@ -9,6 +9,7 @@ from pathlib import Path
 from feynman import __version__
 from feynman.build import build_document
 from feynman.editor import DEFAULT_PORT, EditorUnavailableError, serve_editor
+from feynman.scaffold import init_document
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -37,6 +38,27 @@ def main(argv: list[str] | None = None) -> int:
         "instead of a portable folder with sidecar assets.",
     )
 
+    init = sub.add_parser(
+        "init",
+        help="Write a starter document to begin a new post.",
+    )
+    init.add_argument(
+        "dest",
+        type=Path,
+        help="Path for the new .md document (its filename becomes the title).",
+    )
+    init.add_argument(
+        "-f",
+        "--force",
+        action="store_true",
+        help="Overwrite dest if it already exists.",
+    )
+    init.add_argument(
+        "--minimal",
+        action="store_true",
+        help="Write only front matter and a heading, not the feature tour.",
+    )
+
     draw = sub.add_parser(
         "draw",
         help="Open the bundled SVG editor in a browser to draw a figure.",
@@ -62,6 +84,19 @@ def main(argv: list[str] | None = None) -> int:
             return 2
         out_html = build_document(args.source, args.out, inline=args.inline)
         print(f"built {out_html}")
+        return 0
+
+    if args.command == "init":
+        try:
+            dest = init_document(args.dest, force=args.force, minimal=args.minimal)
+        except FileExistsError as exc:
+            print(
+                f"error: {exc} already exists (use --force to overwrite)",
+                file=sys.stderr,
+            )
+            return 2
+        print(f"wrote {dest}")
+        print(f"next: feynman build {dest}")
         return 0
 
     if args.command == "draw":

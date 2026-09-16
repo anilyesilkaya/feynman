@@ -60,6 +60,21 @@ pip install ".[demo]"    # + matplotlib, for the example document
 
 ## Usage
 
+Start a new document with `init`, then `build` it:
+
+```bash
+feynman init my-first-post.md   # writes a starter document
+feynman build my-first-post.md  # compiles it to _site/my-first-post.html
+```
+
+`feynman init` writes a single, ready-to-build Markdown file: front matter (its
+`title` derived from the filename) plus a short live example of each core
+feature — prose, mathematics, a static code block, and an executed `{python}`
+cell. It never overwrites an existing file unless you pass `--force`, and
+`--minimal` writes just front matter and a heading instead of the feature tour.
+Feynman is a single-document generator, so `init` creates *one file*, not a
+project tree.
+
 ```bash
 feynman build examples/demo.md -o _site
 ```
