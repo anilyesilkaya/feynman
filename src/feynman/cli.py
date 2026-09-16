@@ -8,6 +8,7 @@ from pathlib import Path
 
 from feynman import __version__
 from feynman.build import build_document
+from feynman.editor import DEFAULT_PORT, EditorUnavailableError, serve_editor
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -36,6 +37,23 @@ def main(argv: list[str] | None = None) -> int:
         "instead of a portable folder with sidecar assets.",
     )
 
+    draw = sub.add_parser(
+        "draw",
+        help="Open the bundled SVG editor in a browser to draw a figure.",
+    )
+    draw.add_argument(
+        "--port",
+        type=int,
+        default=DEFAULT_PORT,
+        help=f"Local port to serve on (default: {DEFAULT_PORT}; 0 picks a free one).",
+    )
+    draw.add_argument(
+        "--no-browser",
+        dest="open_browser",
+        action="store_false",
+        help="Do not open a browser; print the URL only (useful in headless/CI).",
+    )
+
     args = parser.parse_args(argv)
 
     if args.command == "build":
@@ -44,6 +62,14 @@ def main(argv: list[str] | None = None) -> int:
             return 2
         out_html = build_document(args.source, args.out, inline=args.inline)
         print(f"built {out_html}")
+        return 0
+
+    if args.command == "draw":
+        try:
+            serve_editor(port=args.port, open_browser=args.open_browser)
+        except EditorUnavailableError as exc:
+            print(f"error: {exc}", file=sys.stderr)
+            return 2
         return 0
 
     parser.print_help()
