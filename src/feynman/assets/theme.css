@@ -20,6 +20,13 @@
   --success: #38614e;
   --success-soft: #edf2e9;
   --error: #b4232c;
+  --error-soft: #f6e6e4;
+  /* Callout variants: a readable ink and a paper-toned wash, in the same
+     muted register as --success / --success-soft. */
+  --info: #2f5c7a;
+  --info-soft: #e7eef3;
+  --warning: #8a6614;
+  --warning-soft: #f5ecd6;
   /* Code surface follows the theme so Pygments' light/dark token colours
      (scoped under :root vs [data-theme=dark]) stay readable in both. */
   --code-bg: #f3f2ea;
@@ -48,6 +55,11 @@
   --success: #add3b6;
   --success-soft: #283b2e;
   --error: #f2777a;
+  --error-soft: #3a2a2b;
+  --info: #8fc0dc;
+  --info-soft: #24333b;
+  --warning: #e0bd6f;
+  --warning-soft: #362f20;
   --code-bg: #151b17;
   --code-toolbar: #1f2822;
   color-scheme: dark;
@@ -373,6 +385,49 @@ math[display="block"] { display: block; margin: 1.5rem 0; text-align: center; }
 .feynman-output-figure svg,
 .feynman-output-figure img { max-width: 100%; height: auto; display: block; margin-inline: auto; }
 .feynman-output-html { overflow-x: auto; background: var(--surface); padding: 12px; border-radius: var(--radius); }
+
+/* --- callout boxes --------------------------------------------------- */
+/* A soft, variant-tinted wash with a coloured left rule, modelled on the
+   executed-cell output block. Colour comes from the variant tokens, so the
+   box recolours with the theme; per-variant rules only swap those two vars. */
+.feynman-box {
+  margin: 24px 0;
+  padding: 16px 20px;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--info);
+  border-radius: var(--radius);
+  background: var(--info-soft);
+}
+.feynman-box-info { border-left-color: var(--info); background: var(--info-soft); }
+.feynman-box-warning { border-left-color: var(--warning); background: var(--warning-soft); }
+.feynman-box-error { border-left-color: var(--error); background: var(--error-soft); }
+
+/* Header row (icon + title), styled like .output-label. */
+.feynman-box-title {
+  display: flex; align-items: center; gap: 8px;
+  font: 10px var(--mono); letter-spacing: 0.06em; text-transform: uppercase;
+  margin-bottom: 8px;
+}
+/* A titleless box floats its icon at the top-left as a small variant marker. */
+.feynman-box > .feynman-box-icon {
+  float: left; margin: 1px 10px 4px 0;
+}
+/* A touch larger than the shared .icon, and a heavier stroke so the interior
+   marks (the i's dot, the ! ) stay crisp at this small size. */
+.feynman-box-icon .icon { width: 17px; height: 17px; stroke-width: 2; }
+.feynman-box > .feynman-box-icon .icon { width: 19px; height: 19px; }
+.feynman-box-info .feynman-box-title,
+.feynman-box-info > .feynman-box-icon { color: var(--info); }
+.feynman-box-warning .feynman-box-title,
+.feynman-box-warning > .feynman-box-icon { color: var(--warning); }
+.feynman-box-error .feynman-box-title,
+.feynman-box-error > .feynman-box-icon { color: var(--error); }
+
+/* The body is ordinary prose; trim the outer margins so the padding reads
+   evenly, and clear the floated icon of a titleless box. */
+.feynman-box > :last-child { margin-bottom: 0; }
+.feynman-box-title + * { margin-top: 0; }
+.feynman-box::after { content: ""; display: block; clear: both; }
 
 /* --- viz ------------------------------------------------------------- */
 .feynman-viz-figure { margin: 26px 0; }

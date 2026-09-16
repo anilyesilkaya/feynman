@@ -63,6 +63,16 @@ def test_viz_component_present(built_html):
     assert '"pattern":"diagonal"' in built_html
 
 
+def test_callout_boxes_present(built_html):
+    # The demo ships one box of each variant; a titled box gets a header row
+    # and a titleless one is still marked by its icon.
+    assert 'class="feynman-box feynman-box-info"' in built_html
+    assert 'class="feynman-box feynman-box-warning"' in built_html
+    assert 'class="feynman-box feynman-box-error"' in built_html
+    assert "feynman-box-title" in built_html  # the titled boxes
+    assert "Don&#x27;t do that" in built_html  # error box title, escaped
+
+
 def test_equation_panel_has_copy_button(built_html):
     # Display equations render inside a panel with a copy-the-LaTeX button that
     # carries the raw source in data-latex.

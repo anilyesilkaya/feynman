@@ -20,11 +20,17 @@ from mdit_py_plugins.front_matter import front_matter_plugin
 from feynman import crossref
 
 VIZ_NAME = "viz"
+BOX_NAME = "box"
 
 
 def _viz_validate(params: str, *args) -> bool:
     """Match ``::: viz ...`` fences (the token becomes ``container_viz``)."""
     return params.strip().split(" ", 1)[0] == VIZ_NAME
+
+
+def _box_validate(params: str, *args) -> bool:
+    """Match ``::: box ...`` fences (the token becomes ``container_box``)."""
+    return params.strip().split(" ", 1)[0] == BOX_NAME
 
 
 def make_md() -> MarkdownIt:
@@ -37,6 +43,7 @@ def make_md() -> MarkdownIt:
         .use(attrs_plugin)
         .use(anchors_plugin, min_level=2, max_level=3, permalink=False)
         .use(container_plugin, VIZ_NAME, validate=_viz_validate)
+        .use(container_plugin, BOX_NAME, validate=_box_validate)
     )
     # Cross-referencing: `@label` references (an inline rule, before emphasis so
     # it claims the `@`) and explicit `{#sec-...}` heading ids (a core rule after
