@@ -74,3 +74,56 @@ def test_stale_media_removed_on_rebuild(doc_with_image, tmp_path):
     doc_with_image.write_text("---\ntitle: T\n---\n\nno image\n", encoding="utf-8")
     build_document(doc_with_image, out)
     assert not (out / "media").exists()
+
+
+_SVG_FILE = (
+    '<?xml version="1.0" encoding="UTF-8"?>\n'
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10">'
+    '<rect x="1" y="1" width="8" height="8" fill="#88ccee" stroke="#222222"/></svg>\n'
+)
+
+
+@pytest.fixture
+def doc_with_figure(tmp_path):
+    (tmp_path / "figures").mkdir()
+    (tmp_path / "figures" / "d.svg").write_text(_SVG_FILE, encoding="utf-8")
+    src = tmp_path / "scratch.md"
+    src.write_text(
+        "---\ntitle: Scratch\n---\n\n"
+        "::: figure {src=figures/d.svg theme=auto #fig-d}\n"
+        "A caption.\n"
+        ":::\n",
+        encoding="utf-8",
+    )
+    return src
+
+
+@pytest.mark.parametrize("inline", [True, False])
+def test_figure_svg_inlined_into_body(doc_with_figure, tmp_path, inline):
+    out = tmp_path / "out"
+    html_path = build_document(doc_with_figure, out, inline=inline)
+    html = html_path.read_text(encoding="utf-8")
+    # The SVG lands in the body, prolog stripped, id on the <figure>.
+    assert 'class="feynman-figure"' in html
+    assert "<rect" in html
+    assert "<?xml" not in html
+    assert 'id="fig-d"' in html
+    assert "currentColor" in html  # theme=auto mapped the ink stroke
+    # The SVG is inlined, never copied to media/ (even in portable mode).
+    assert not list(out.glob("media/*.svg"))
+    if not inline:
+        assert not (out / "media").exists()
+
+
+def test_missing_figure_src_warns_and_placeholder(tmp_path, capsys):
+    src = tmp_path / "scratch.md"
+    src.write_text(
+        "---\ntitle: T\n---\n\n"
+        "::: figure {src=nope.svg #fig-x}\ncap\n:::\n",
+        encoding="utf-8",
+    )
+    build_document(src, tmp_path / "out")
+    html = (tmp_path / "out" / "scratch.html").read_text(encoding="utf-8")
+    assert "feynman-figure-missing" in html
+    assert 'id="fig-x"' in html  # reference still resolves
+    assert "nope.svg" in capsys.readouterr().err

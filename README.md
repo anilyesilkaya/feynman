@@ -33,6 +33,11 @@ browser.
   integer step, driven by play / prev / next / scrub controls. Ships with
   `grid`, `radial` and `wave` types; the type registry validates directives at
   build time, warning on an unknown `type=`.
+- **Embedded SVG figures.** A `:::figure {src=diagram.svg}` directive inlines an
+  external SVG into the page as a captioned, numbered figure — sharing the same
+  "Figure N" counter as executed charts and `:::viz` blocks via a `#fig-` id.
+  Inlining (rather than an `<img>`) lets an optional `theme=auto` recolour
+  ink/paper-toned strokes and fills to follow the light/dark theme.
 
 The look is a warm "printed notebook": paper/ink palette, serif display type,
 mono labels, a sticky table of contents, a reading-progress bar, and a pure-CSS

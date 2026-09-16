@@ -21,6 +21,7 @@ from feynman import crossref
 
 VIZ_NAME = "viz"
 BOX_NAME = "box"
+FIGURE_NAME = "figure"
 
 
 def _viz_validate(params: str, *args) -> bool:
@@ -31,6 +32,11 @@ def _viz_validate(params: str, *args) -> bool:
 def _box_validate(params: str, *args) -> bool:
     """Match ``::: box ...`` fences (the token becomes ``container_box``)."""
     return params.strip().split(" ", 1)[0] == BOX_NAME
+
+
+def _figure_validate(params: str, *args) -> bool:
+    """Match ``::: figure ...`` fences (token becomes ``container_figure``)."""
+    return params.strip().split(" ", 1)[0] == FIGURE_NAME
 
 
 def make_md() -> MarkdownIt:
@@ -44,6 +50,7 @@ def make_md() -> MarkdownIt:
         .use(anchors_plugin, min_level=2, max_level=3, permalink=False)
         .use(container_plugin, VIZ_NAME, validate=_viz_validate)
         .use(container_plugin, BOX_NAME, validate=_box_validate)
+        .use(container_plugin, FIGURE_NAME, validate=_figure_validate)
     )
     # Cross-referencing: `@label` references (an inline rule, before emphasis so
     # it claims the `@`) and explicit `{#sec-...}` heading ids (a core rule after

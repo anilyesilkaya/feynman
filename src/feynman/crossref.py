@@ -28,7 +28,7 @@ from html import escape
 
 from markdown_it.token import Token
 
-from feynman import directives
+from feynman import directives, figures
 
 # A reference: ``@`` then a lowercase prefix, a hyphen, and a slug. The prefix is
 # lowercase-only so a stray "@" in prose (or a bare "@handle") never matches; the
@@ -164,6 +164,10 @@ def collect_targets(tokens: list[Token]) -> tuple[dict[str, Target], list[str]]:
             # The viz id (``#viz-...``) is parsed by the directive module, so
             # the label we register is exactly the id it puts on the <figure>.
             register(directives.parse_params(tok.info).get("id"))
+        elif tok.type == "container_figure_open":
+            # A ``:::figure`` with a ``#fig-...`` id joins the shared figures
+            # counter, numbering continuously with cells and viz blocks.
+            register(figures.parse_figure_params(tok.info).get("id"))
 
     return targets, warnings
 

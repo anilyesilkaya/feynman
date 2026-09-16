@@ -23,7 +23,7 @@ from markdown_it.token import Token
 
 from html import escape
 
-from feynman import boxes, crossref, directives
+from feynman import boxes, crossref, directives, figures
 from feynman.collect import AssetCollector
 from feynman.crossref import Target
 from feynman.execute import CellResult, execute_cells
@@ -233,6 +233,25 @@ class FeynmanRenderer(RendererHTML):
     def container_box_close(self, tokens, idx, options, env):
         return boxes.render_box_close()
 
+    # --- embedded figures --------------------------------------------------
+    def container_figure_open(self, tokens, idx, options, env):
+        info = tokens[idx].info
+        spec = figures.parse_figure_params(info)
+        target = self._targets.get(spec.get("id") or "")
+        marker = target.marker if target is not None else ""
+        # Read the SVG at render time (the collector holds the filesystem); a
+        # missing file / no collector yields None, which becomes a placeholder.
+        src = spec.get("src")
+        svg_text = (
+            self._collector.read_text(src)
+            if self._collector is not None and src
+            else None
+        )
+        return figures.render_figure_open(info, svg_text, marker=marker)
+
+    def container_figure_close(self, tokens, idx, options, env):
+        return figures.render_figure_close()
+
     # --- images ------------------------------------------------------------
     def image(self, tokens, idx, options, env):
         # Route the src through the collector (copy locally / inline as a data
@@ -251,6 +270,10 @@ def _collect_viz_infos(tokens: list[Token]) -> list[str]:
 
 def _collect_box_infos(tokens: list[Token]) -> list[str]:
     return [t.info for t in tokens if t.type == "container_box_open"]
+
+
+def _collect_figure_infos(tokens: list[Token]) -> list[str]:
+    return [t.info for t in tokens if t.type == "container_figure_open"]
 
 
 def render_document(
@@ -276,6 +299,13 @@ def render_document(
     # would silently get the info style otherwise).
     for info in _collect_box_infos(tokens):
         warning = boxes.validate_box(boxes.parse_box_params(info))
+        if warning:
+            print(f"warning: {warning}", file=sys.stderr)
+
+    # Warn about a figure directive with no src or an unknown theme (a missing
+    # file is caught later, at render time, where the filesystem is in reach).
+    for info in _collect_figure_infos(tokens):
+        warning = figures.validate_figure(figures.parse_figure_params(info))
         if warning:
             print(f"warning: {warning}", file=sys.stderr)
 

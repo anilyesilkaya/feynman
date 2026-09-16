@@ -118,6 +118,23 @@ seek machinery never changes. Note that the three figures above — @viz-grid,
 reader sees a single "Figure N" sequence across executed charts and driven
 visualisations alike.
 
+## Embedded figures {#sec-figure}
+
+Not every figure is code. Draw a diagram in an SVG editor, save the file, and
+embed it with a `:::figure` — feynman inlines the SVG so it stays crisp, gives it
+a caption, and numbers it in the same "Figure N" sequence as everything else. Add
+`theme=auto` and ink-toned strokes and fills recolour with the page, so the figure
+reads correctly in light and dark; other colours are left alone.
+
+::: figure {src=figures/diagram.svg theme=auto #fig-sets}
+Two sets and their intersection, drawn by hand and embedded as an external SVG —
+no plotting code, no image file to encode. Compare with the driven pictures in
+@sec-viz.
+:::
+
+@fig-sets is a static drawing, yet it shares the counter with the executed chart
+@fig-lengths and the visualisations in @sec-viz.
+
 ## Callout boxes {#sec-box}
 
 Set a point apart with a `:::box`. One directive, three variants chosen by

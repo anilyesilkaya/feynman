@@ -56,6 +56,27 @@ class AssetCollector:
             return self._data_uri(resolved)
         return self._copy(resolved)
 
+    def read_text(self, ref: str) -> str | None:
+        """Return the text of a source-relative file, or ``None`` if unresolved.
+
+        Used to *inline* an external asset (e.g. an ``.svg`` embedded by a
+        ``:::figure`` directive) into the HTML body. Path handling mirrors
+        :meth:`resolve` -- strip ``?query``/``#fragment``, unquote, resolve under
+        :attr:`source_dir` -- but the file is never copied or rewritten: it is
+        read straight into the page. A remote/site-absolute ref (we do not fetch
+        at build time) or a missing file records a miss in :attr:`missing` and
+        returns ``None`` so the caller can degrade gracefully.
+        """
+        if not ref or ref.startswith(_REMOTE_PREFIXES) or ref.startswith("/"):
+            self.missing.append(ref)
+            return None
+        parts = urlsplit(ref)
+        resolved = (self.source_dir / unquote(parts.path)).resolve()
+        if not resolved.is_file():
+            self.missing.append(ref)
+            return None
+        return resolved.read_text(encoding="utf-8")
+
     def _data_uri(self, path: Path) -> str:
         mime = mimetypes.guess_type(path.name)[0] or "application/octet-stream"
         b64 = base64.b64encode(path.read_bytes()).decode("ascii")

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 440 260">
+  <circle cx="175" cy="130" r="92" fill="#88ccee" fill-opacity="0.65" stroke="#222222" stroke-width="2"/>
+  <circle cx="265" cy="130" r="92" fill="#e6a15c" fill-opacity="0.65" stroke="#222222" stroke-width="2"/>
+  <text x="132" y="130" text-anchor="middle" dominant-baseline="middle" font-family="sans-serif" font-size="18" fill="#222222">A</text>
+  <text x="308" y="130" text-anchor="middle" dominant-baseline="middle" font-family="sans-serif" font-size="18" fill="#222222">B</text>
+  <text x="220" y="130" text-anchor="middle" dominant-baseline="middle" font-family="sans-serif" font-size="13" fill="#222222">A ∩ B</text>
+</svg>
