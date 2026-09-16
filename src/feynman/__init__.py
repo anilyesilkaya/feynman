@@ -13,7 +13,7 @@ The whole build is a pure function of the source; the only code shipped to the
 reader is one ES module plus a stylesheet.
 """
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"
 
 from feynman.build import build_document
 

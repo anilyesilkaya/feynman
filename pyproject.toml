@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "feynman"
-version = "0.2.0"
+version = "0.3.0"
 description = "An authoring system for interactive technical explanations: a Python-native static generator with build-time math, code execution, and step-driven visualisations."
 readme = "README.md"
 requires-python = ">=3.10"
