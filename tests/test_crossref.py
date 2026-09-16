@@ -31,18 +31,19 @@ def test_each_kind_numbers_independently():
 
 
 def test_figures_and_viz_share_one_counter():
-    # A cell figure, then a viz, then another cell figure -> Figure 1, 2, 3.
+    # A cell figure, a viz, then an embedded :::figure -> Figure 1, 2, 3, all on
+    # the one shared counter and reading as "Figure".
     tokens = _parse(
         "```{python}\n#| label: fig-a\np\n```\n\n"
         "::: viz {type=grid #viz-b}\ncap\n:::\n\n"
-        "```{python}\n#| label: fig-c\np\n```\n"
+        "::: figure {src=d.svg #fig-c}\ncap\n:::\n"
     )
     targets, warnings = collect_targets(tokens)
     assert warnings == []
     assert targets["fig-a"].number == 1
     assert targets["viz-b"].number == 2
     assert targets["fig-c"].number == 3
-    # Both kinds read as "Figure".
+    # All kinds read as "Figure".
     assert targets["viz-b"].reference_text == "Figure 2"
     assert targets["fig-c"].reference_text == "Figure 3"
 

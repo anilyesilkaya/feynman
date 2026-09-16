@@ -442,6 +442,28 @@ feynman-viz {
   margin-top: 12px;
 }
 
+/* --- embedded figures (:::figure) ------------------------------------ */
+/* An external SVG inlined into the body. Framed like a viz block so the two
+   read as one family; the SVG scales to the column width. */
+.feynman-figure { margin: 26px 0; }
+.feynman-figure-svg {
+  max-width: 100%; height: auto; display: block; margin-inline: auto;
+  border: 1px solid var(--line); border-radius: var(--radius);
+  background: var(--surface); padding: 20px 24px;
+}
+/* theme=auto only: the root carries --ink so `currentColor` marks follow the
+   theme and flip in dark mode. Verbatim figures get no colour override. */
+.feynman-figure-themed { color: var(--ink); }
+.feynman-figure figcaption {
+  color: var(--muted); font-size: 11px; line-height: 1.75;
+  margin-top: 12px;
+}
+.feynman-figure-missing {
+  color: var(--muted); border: 1px dashed var(--line);
+  border-radius: var(--radius); background: var(--surface);
+  padding: 20px 24px; text-align: center; font-size: 12px;
+}
+
 /* viz internals (rendered by feynman.js) */
 .fv-grid, .fv-radial, .fv-wave {
   width: 100%; height: auto; display: block; margin-inline: auto;

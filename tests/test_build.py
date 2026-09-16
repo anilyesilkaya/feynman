@@ -73,6 +73,20 @@ def test_callout_boxes_present(built_html):
     assert "Don&#x27;t do that" in built_html  # error box title, escaped
 
 
+def test_embedded_figure_present(built_html):
+    # The demo embeds an external SVG via :::figure with theme=auto. The SVG is
+    # inlined (not an <img>), the XML prolog is stripped, ink strokes are mapped
+    # to currentColor and the chromatic fill is left untouched. Scope the checks
+    # to this figure's markup -- a matplotlib cell figure carries its own prolog.
+    assert 'class="feynman-figure"' in built_html
+    start = built_html.index('class="feynman-figure"')
+    figure = built_html[start : built_html.index("</figure>", start)]
+    assert "feynman-figure-svg feynman-figure-themed" in figure
+    assert "<?xml" not in figure  # the directive strips the prolog before inlining
+    assert "currentColor" in figure  # ink stroke recoloured
+    assert "#88ccee" in figure  # chromatic fill preserved
+
+
 def test_equation_panel_has_copy_button(built_html):
     # Display equations render inside a panel with a copy-the-LaTeX button that
     # carries the raw source in data-latex.
@@ -96,10 +110,13 @@ def test_cross_references_resolve(built_html):
     assert 'id="eq-fourier"' in built_html
     assert 'href="#lst-greet"' in built_html
     assert 'id="lst-greet"' in built_html
-    # The shared figure counter spans the cell figure and the viz blocks.
+    # The shared figure counter spans the cell figure, the viz blocks and the
+    # embedded :::figure.
     assert 'href="#fig-lengths"' in built_html
     assert 'href="#viz-grid"' in built_html
     assert 'id="viz-grid"' in built_html
+    assert 'href="#fig-sets"' in built_html
+    assert 'id="fig-sets"' in built_html
     assert "Equation 1" in built_html
     assert "Figure 1" in built_html
 

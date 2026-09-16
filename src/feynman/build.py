@@ -99,6 +99,6 @@ def build_document(source: Path, out_dir: Path, *, inline: bool = False) -> Path
         (out_dir / PYGMENTS_CSS_NAME).write_text(get_style_css(), encoding="utf-8")
 
     for ref in collector.missing:
-        print(f"warning: image not found, left as-is: {ref}", file=sys.stderr)
+        print(f"warning: asset not found: {ref}", file=sys.stderr)
 
     return out_html
