@@ -1,0 +1,46 @@
+{% extends "base.html.j2" -%}
+{# Research article -- paper-first: a meta row (authors / date / version), an
+   optional abstract, then numbered sections in a narrow measure. Front-matter
+   keys `authors`, `date`, `version`, `abstract`, `keywords` drive the extras;
+   all are optional and simply omit their markup when absent. #}
+
+{% block footer_note %}Paper-first scientific communication.{% endblock %}
+
+{% block hero %}
+<header class="article-hero">
+  <p class="eyebrow hero-kicker">{{ kicker }}</p>
+  <h1 class="feynman-title">{{ hero_title }}</h1>
+  {%- if subtitle %}
+  <p class="feynman-subtitle">{{ subtitle }}</p>
+  {%- endif %}
+  {%- if authors or date or version or source_url %}
+  <div class="article-meta">
+    {%- if authors %}<span><strong>{{ authors }}</strong></span>{% endif %}
+    {%- if date %}<span>{{ date }}</span>{% endif %}
+    {%- if version %}<span>Version {{ version }}</span>{% endif %}
+    {%- if source_url %}<span><a href="{{ source_url }}">Source</a></span>{% endif %}
+  </div>
+  {%- endif %}
+</header>
+{% endblock %}
+
+{% block layout %}
+<div class="article-layout" id="notebook">
+  <aside class="contents js-only" aria-hidden="true">
+    <nav aria-label="Table of contents">
+      <h2 class="eyebrow">Contents</h2>
+      <ol></ol>
+    </nav>
+  </aside>
+  <article class="feynman-prose article-prose">
+    {%- if abstract %}
+    <section class="abstract">
+      <h2>Abstract</h2>
+      <p>{{ abstract }}</p>
+      {%- if keywords %}<p class="keywords"><strong>Keywords:</strong> {{ keywords }}</p>{% endif %}
+    </section>
+    {%- endif %}
+    {{ body }}
+  </article>
+</div>
+{% endblock %}

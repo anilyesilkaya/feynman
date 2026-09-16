@@ -1,0 +1,46 @@
+{% extends "base.html.j2" -%}
+{# Reference / specification -- dense and scannable: a hero with status badges,
+   a wider measure, and bordered section heads for fast lookup. The front-matter
+   `badges` key (a list of strings) renders chips; a badge reading "stable" is
+   tinted with the success colour. #}
+
+{% block footer_note %}Designed for fast technical lookup.{% endblock %}
+
+{% block hero %}
+<header class="spec-hero">
+  <p class="eyebrow hero-kicker">{{ kicker }}</p>
+  <h1 class="feynman-title">{{ hero_title }}</h1>
+  {%- if subtitle %}
+  <p class="feynman-subtitle">{{ subtitle }}</p>
+  {%- endif %}
+  {%- if badges %}
+  <div class="spec-meta">
+    {%- for badge in badges %}
+    <span class="badge{% if badge|lower == 'stable' %} stable{% endif %}">{{ badge }}</span>
+    {%- endfor %}
+  </div>
+  {%- endif %}
+  {%- if source_url %}
+  <p class="hero-source">
+    <a href="{{ source_url }}">
+      <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3h7v7m0-7L10 14M19 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"/></svg>
+      View the source Markdown
+    </a>
+  </p>
+  {%- endif %}
+</header>
+{% endblock %}
+
+{% block layout %}
+<div class="spec-layout" id="notebook">
+  <aside class="contents js-only" aria-hidden="true">
+    <nav aria-label="Table of contents">
+      <h2 class="eyebrow">Reference</h2>
+      <ol></ol>
+    </nav>
+  </aside>
+  <article class="feynman-prose spec-prose">
+    {{ body }}
+  </article>
+</div>
+{% endblock %}

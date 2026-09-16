@@ -178,6 +178,23 @@ alone marks the variant; add a quoted `title=` and it gains a header row whose
 text may contain spaces.
 :::
 
+## Themes {#sec-themes}
+
+This page uses the default **notebook** theme. A theme sets the page layout and
+typography — chosen with a `style:` key in the front matter — while sharing the
+same tokens, so light/dark, code highlighting and every building block above
+work identically across all of them. Two more ship built in:
+
+- **[Research article](article.html)** (`style: article`) — paper-first, with an
+  author/date/version meta row, an abstract, and numbered sections in a narrower
+  measure. Built for preprints, reports, and research notes.
+- **[Reference / specification](spec.html)** (`style: spec`) — dense and
+  scannable, with status chips in the hero, a wider measure, and ruled section
+  heads. Built for APIs, algorithms, and software documentation.
+
+Each links back here, so you can compare the same engine in three different
+dressings. An unrecognised `style:` falls back to this notebook theme.
+
 ## Cross-references {#sec-xref}
 
 Everything on this page is linkable. Give an element a typed label — `#eq-` for

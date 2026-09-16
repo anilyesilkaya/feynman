@@ -29,6 +29,7 @@ theme: light
 kicker: First post
 tagline: Ideas, made understandable.
 # Optional front matter (uncomment to use):
+# style: notebook           # built-in theme: notebook (default), article, spec
 # hero_title: '{{title}}'   # raw-HTML display heading; allows <br> and <em>
 # source_url: https://…     # adds a "view source" link in the hero
 ---

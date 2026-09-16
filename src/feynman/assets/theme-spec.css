@@ -1,0 +1,47 @@
+/* Reference / Specification theme -- layered over theme.css.
+   Dense and scannable: a wider measure, status badges in the hero, bordered
+   section heads and sans-serif subheads for fast lookup. Only the frame and
+   prose typography change; the generated body markup is unchanged. */
+
+:root { --measure: 1200px; }
+
+.spec-hero { padding: 44px 0 30px; border-bottom: 1px solid var(--line); }
+.spec-hero .feynman-title { font-size: clamp(36px, 4.5vw, 56px); margin-bottom: 14px; }
+.spec-hero .feynman-subtitle { margin-top: 18px; }
+.spec-meta { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 22px; }
+.badge {
+  border: 1px solid var(--line); background: var(--surface);
+  border-radius: 999px; padding: 5px 10px;
+  font: 10px var(--mono); letter-spacing: 0.04em; color: var(--muted);
+}
+.badge.stable {
+  color: var(--success);
+  border-color: color-mix(in srgb, var(--success) 40%, var(--line));
+}
+
+.spec-layout {
+  display: grid; grid-template-columns: 210px minmax(0, 1fr);
+  gap: 48px; padding: 44px 0 82px;
+}
+.spec-prose { max-width: 820px; }
+
+/* Section heads carry a top rule so clauses are easy to scan; subheads drop to
+   the sans face so they read as structure rather than prose. */
+.spec-prose h2 {
+  padding-top: 14px; border-top: 1px solid var(--line);
+  font-size: 30px;
+}
+.spec-prose > h2:first-child { border-top: 0; padding-top: 0; }
+.spec-prose h3 {
+  font-family: var(--sans); font-weight: 650; font-size: 17px;
+  letter-spacing: 0; margin-top: 30px;
+}
+
+@media (max-width: 1050px) {
+  .spec-layout { grid-template-columns: 180px minmax(0, 1fr); gap: 36px; }
+}
+@media (max-width: 820px) {
+  .spec-layout { display: block; padding-top: 38px; }
+  .spec-layout .contents, .spec-layout .contents.js-only { display: none; }
+  .spec-prose { max-width: 100%; }
+}
