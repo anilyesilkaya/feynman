@@ -14,19 +14,27 @@ import sys
 from importlib import resources
 from pathlib import Path
 
-from jinja2 import Environment
+from jinja2 import Environment, FunctionLoader
 
 from feynman.collect import MEDIA_DIR, AssetCollector
 from feynman.highlight import get_style_css
 from feynman.render import render_document
+from feynman.themes import BASE_CSS, resolve
 
-ASSET_FILES = ("theme.css", "feynman.js")
-TEMPLATE_NAME = "base.html.j2"
+# The runtime script and the base stylesheet ship with every page; theme CSS
+# layers are added per document by ``build_document``.
+ASSET_FILES = ("feynman.js",)
 PYGMENTS_CSS_NAME = "pygments.css"
 
 
 def _asset_text(name: str) -> str:
     return resources.files("feynman.assets").joinpath(name).read_text(encoding="utf-8")
+
+
+# One Jinja environment whose loader reads templates from the package assets, so
+# a theme template's ``{% extends "base.html.j2" %}`` resolves. autoescape stays
+# off: the body is already-rendered trusted HTML, as it was for the flat page.
+_ENV = Environment(loader=FunctionLoader(_asset_text), autoescape=False)
 
 
 def _guard_inline(name: str, content: str) -> str:
@@ -55,33 +63,51 @@ def build_document(source: Path, out_dir: Path, *, inline: bool = False) -> Path
     collector = AssetCollector(source.parent, out_dir, inline=inline)
     doc, body = render_document(text, collector=collector)
 
+    meta = doc.meta or {}
+    theme, style_warning = resolve(meta.get("style"))
+    if style_warning:
+        print(f"warning: {style_warning}", file=sys.stderr)
+
+    # The base stylesheet first, then any theme layers, so a layer only overrides
+    # what it needs. Emitted in this order into the page.
+    css_files = (BASE_CSS, *theme.styles)
+
     if inline:
         assets = {
-            "css": {"content": _guard_inline("theme.css", _asset_text("theme.css"))},
+            "css": [
+                {"content": _guard_inline(name, _asset_text(name))} for name in css_files
+            ],
             "pygments": {"content": _guard_inline("pygments.css", get_style_css())},
             "js": {"content": _guard_inline("feynman.js", _asset_text("feynman.js"))},
         }
     else:
         assets = {
-            "css": {"href": "theme.css"},
+            "css": [{"href": name} for name in css_files],
             "pygments": {"href": PYGMENTS_CSS_NAME},
             "js": {"href": "feynman.js"},
         }
 
-    template = Environment(autoescape=False).from_string(_asset_text(TEMPLATE_NAME))
-    meta = doc.meta or {}
+    template = _ENV.get_template(theme.template)
     title = meta.get("title", source.stem)
     html = template.render(
         title=title,
         theme=meta.get("theme", "light"),
+        style=theme.name,
         subtitle=meta.get("subtitle", ""),
-        # Small bits of chrome, front-matter driven with neutral defaults.
-        tagline=meta.get("tagline", "Ideas, made understandable."),
-        kicker=meta.get("kicker", "A feynman notebook"),
+        # Small bits of chrome, front-matter driven with per-theme defaults.
+        tagline=meta.get("tagline", theme.defaults.get("tagline", "")),
+        kicker=meta.get("kicker", theme.defaults.get("kicker", "")),
         # Optional hero overrides: `hero_title` is raw HTML for the display
         # heading (e.g. line breaks / emphasis); `source_url` links the source.
         hero_title=meta.get("hero_title", "") or title,
         source_url=meta.get("source_url", ""),
+        # Extra front matter consumed by specific themes (ignored by others).
+        authors=meta.get("authors", ""),
+        date=meta.get("date", ""),
+        version=meta.get("version", ""),
+        abstract=meta.get("abstract", ""),
+        keywords=meta.get("keywords", ""),
+        badges=meta.get("badges") or [],
         body=body,
         inline=inline,
         assets=assets,
@@ -95,6 +121,8 @@ def build_document(source: Path, out_dir: Path, *, inline: bool = False) -> Path
     # there is nothing further to write.
     if not inline:
         for name in ASSET_FILES:
+            (out_dir / name).write_text(_asset_text(name), encoding="utf-8")
+        for name in css_files:
             (out_dir / name).write_text(_asset_text(name), encoding="utf-8")
         (out_dir / PYGMENTS_CSS_NAME).write_text(get_style_css(), encoding="utf-8")
 

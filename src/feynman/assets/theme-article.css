@@ -1,0 +1,57 @@
+/* Research Article theme -- layered over theme.css.
+   Paper-first: a narrower measure, an author/date meta row, an abstract block,
+   and automatically-numbered sections. Only the frame and prose typography
+   change; the generated body markup is identical to every other theme. */
+
+:root { --measure: 1100px; }
+
+.article-hero { max-width: 860px; padding: 56px 0 34px; border-bottom: 1px solid var(--line); }
+.article-hero .feynman-title { font-size: clamp(40px, 5.2vw, 64px); max-width: 820px; }
+.article-hero .feynman-subtitle { margin-top: 20px; }
+.article-meta {
+  display: flex; flex-wrap: wrap; gap: 8px 22px;
+  margin: 24px 0 0; font-size: 12px; color: var(--muted);
+}
+.article-meta strong { color: var(--ink); font-weight: 600; }
+.article-meta a { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; }
+
+.article-layout {
+  display: grid; grid-template-columns: 185px minmax(0, 1fr);
+  gap: 64px; padding: 48px 0 86px;
+}
+.article-prose { max-width: 760px; }
+
+/* Abstract: a dense block set off from the narrative, above section 1. */
+.abstract {
+  margin: 0 0 42px; padding: 22px 26px;
+  border-top: 2px solid var(--ink); border-bottom: 1px solid var(--line);
+  background: var(--surface);
+}
+.abstract h2 {
+  margin: 0 0 10px !important;
+  font: 600 11px var(--mono) !important;
+  letter-spacing: 0.1em !important; text-transform: uppercase;
+}
+.abstract p { margin: 0; }
+.keywords { margin-top: 14px; font-size: 13px; color: var(--muted); }
+
+/* Auto-numbered sections: the abstract is excluded (it has no counter bump). */
+.article-prose { counter-reset: section; }
+.article-prose h2 { counter-increment: section; }
+.article-prose .abstract h2 { counter-increment: none; }
+.article-prose h2::before {
+  content: counter(section) ". ";
+  color: var(--muted); font-family: var(--mono); font-size: 0.62em;
+}
+.article-prose .abstract h2::before { content: none; }
+
+@media (max-width: 820px) {
+  .article-layout { display: block; padding-top: 38px; }
+  .article-layout .contents, .article-layout .contents.js-only { display: none; }
+  .article-hero { padding-top: 40px; }
+  .article-prose { max-width: 100%; }
+}
+@media print {
+  .article-hero { padding-top: 20px; }
+  .article-layout { display: block; padding-top: 24px; }
+}

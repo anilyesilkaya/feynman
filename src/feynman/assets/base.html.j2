@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="{{ theme }}">
+<html lang="en" data-theme="{{ theme }}" data-style="{{ style }}">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -10,10 +10,14 @@
   {%- endif %}
   {%- if inline %}
   <style>{{ assets.pygments.content }}</style>
-  <style>{{ assets.css.content }}</style>
+  {%- for layer in assets.css %}
+  <style>{{ layer.content }}</style>
+  {%- endfor %}
   {%- else %}
   <link rel="stylesheet" href="{{ assets.pygments.href }}">
-  <link rel="stylesheet" href="{{ assets.css.href }}">
+  {%- for layer in assets.css %}
+  <link rel="stylesheet" href="{{ layer.href }}">
+  {%- endfor %}
   {%- endif %}
   <script>
     // Add the `js` class and apply the stored theme before first paint so
@@ -41,6 +45,7 @@
         <span class="brand-tag">{{ tagline }}</span>
       </div>
       <nav class="header-actions" aria-label="Page navigation">
+        {%- block header_extra %}{% endblock %}
         <button class="icon-button feynman-theme-toggle js-only" type="button" aria-label="Switch to dark theme" aria-pressed="false">
           <svg class="icon moon-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 13.2A8.6 8.6 0 0 1 10.8 3.5 8.7 8.7 0 1 0 20.5 13.2Z"/></svg>
           <svg class="icon sun-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5"/></svg>
@@ -50,6 +55,7 @@
   </header>
 
   <main class="feynman-container">
+    {%- block hero %}
     <div class="feynman-hero">
       <p class="eyebrow hero-kicker">{{ kicker }}</p>
       <h1 class="feynman-title">{{ hero_title }}</h1>
@@ -65,7 +71,9 @@
       </p>
       {%- endif %}
     </div>
+    {%- endblock %}
 
+    {%- block layout %}
     <div class="notebook-layout" id="notebook">
       <aside class="contents js-only" aria-hidden="true">
         <nav aria-label="Table of contents">
@@ -77,12 +85,13 @@
         {{ body }}
       </article>
     </div>
+    {%- endblock %}
   </main>
 
   <footer class="feynman-footer">
     <div class="feynman-container footer-inner">
       <span>Built with <a href="#top">feynman.</a></span>
-      <span>Ideas, made understandable.</span>
+      <span>{% block footer_note %}Ideas, made understandable.{% endblock %}</span>
     </div>
   </footer>
 

@@ -104,12 +104,31 @@ hero_title: 'A Feynman<br><em>demo.</em>'   # optional raw-HTML display heading
 subtitle: One page exercising every capability.
 kicker: A small notebook, four capabilities
 tagline: Ideas, made understandable.
-theme: light                     # initial theme (light | dark)
+theme: light                     # initial colour mode (light | dark)
+style: notebook                  # built-in theme (notebook | article | spec)
 source_url: https://…/demo.md    # optional "view source" link in the hero
 ---
 ```
 
 All fields are optional; only `title` is really needed.
+
+### Built-in themes
+
+`style:` selects a built-in theme — the page layout and typography, distinct
+from the `theme:` light/dark colour mode. Every theme shares the same tokens,
+so light/dark, code highlighting and all the building blocks work identically.
+
+- **`notebook`** (default) — hero, sticky table of contents, and prose. The
+  original feynman look; the choice when you omit `style`.
+- **`article`** — paper-first, for preprints and technical reports. Adds an
+  author/date/version meta row, an optional `abstract`, and numbered sections
+  in a narrower measure. Reads `authors`, `date`, `version`, `abstract`,
+  `keywords` from the front matter.
+- **`spec`** — dense reference, for APIs, algorithms, and specifications. Status
+  chips in the hero (from a `badges:` list; one reading `Stable` gets a success
+  tint), a wider measure, and ruled section heads for fast lookup.
+
+An unrecognised `style:` falls back to `notebook` with a build warning.
 
 ### Drawing figures
 
