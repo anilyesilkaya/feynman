@@ -1,0 +1,3 @@
+[submodule "src/feynman/editor"]
+	path = src/feynman/editor
+	url = https://github.com/anilyesilkaya/svg-canvas.git
