@@ -2,10 +2,10 @@
 //
 // Two responsibilities:
 //   1. <feynman-viz>: a step-driven visualisation. It reads a JSON spec and
-//      renders one of several shapes -- a box grid, a radial sweep, or a
-//      travelling wave -- each a pure function of an integer step, driven by
+//      renders one of several shapes -- a box grid, a radial sweep, a
+//      travelling wave, a Fourier synthesiser, or a Galton board -- driven by
 //      play / prev / next / scrub controls. IntersectionObserver pauses
-//      playback while the figure is offscreen.
+//      playback while offscreen.
 //   2. the light/dark theme toggle in the header.
 //
 // The single architectural idea: every visualisation is a pure function of an
@@ -222,12 +222,339 @@ class WaveRenderer {
   }
 }
 
+// --- fourier renderer ------------------------------------------------------
+// A Fourier-series synthesiser: the step is the number of harmonic terms
+// summed. The partial sum converges toward a target waveform (square by
+// default), exposing the Gibbs overshoot at its jumps. A faint dashed
+// reference of the ideal target sits behind the bold accent partial sum.
+//
+// Each target gives the coefficient of its k-th harmonic; coefficients are
+// normalised so the ideal waveform peaks at ±1 and `amp` scales that to pixels
+// (as in WaveRenderer). Term N adds the N-th *nonzero* harmonic. New target
+// waveforms are new entries here -- the analogue of the grid's PATTERNS.
+const FOURIER_TARGETS = {
+  // Odd harmonics, all positive: (4/π)/k. Discontinuous -> Gibbs (peak ~1.18).
+  square: (k) => (k % 2 === 1 ? 4 / Math.PI / k : 0),
+  // Every harmonic, alternating sign: (2/π)(-1)^(k+1)/k. Discontinuous.
+  sawtooth: (k) => ((k % 2 === 1 ? 1 : -1) * 2) / (Math.PI * k),
+  // Odd harmonics, sign flips each term, 1/k² decay. Continuous -> no Gibbs.
+  triangle: (k) =>
+    k % 2 === 1
+      ? ((((k - 1) / 2) % 2 === 0 ? 1 : -1) * 8) / (Math.PI * Math.PI * k * k)
+      : 0,
+};
+
+class FourierRenderer {
+  constructor(spec) {
+    this.spec = spec;
+    this.terms = (spec.terms | 0) || 8;
+    this.steps = (spec.steps | 0) || this.terms;
+    this.amp = (spec.amp | 0) || 54;
+    this.freq = (spec.freq | 0) || 1;
+    this.target = FOURIER_TARGETS[spec.target] ? spec.target : "square";
+    this.coef = FOURIER_TARGETS[this.target];
+    this.W = 320;
+    this.H = 160;
+    this.mid = 80;
+
+    // Precompute the first `steps` nonzero harmonics as {k, c} pairs, so a step
+    // is simply "how many of these to sum".
+    this.harmonics = [];
+    for (let k = 1; this.harmonics.length < this.steps; k++) {
+      const c = this.coef(k);
+      if (c !== 0) this.harmonics.push({ k, c });
+    }
+    // Sample density tracks the highest harmonic so the Gibbs spike doesn't
+    // alias; capped so a large `terms` can't blow up the path.
+    const top = this.harmonics.length ? this.harmonics[this.harmonics.length - 1].k : 1;
+    this.samples = Math.min(512, Math.max(128, 8 * top));
+  }
+
+  // Ideal target value at phase p, normalised to ±1 (the dashed reference).
+  ideal(p) {
+    const t = (((p / (2 * Math.PI)) % 1) + 1) % 1; // fractional period 0..1
+    switch (this.target) {
+      case "sawtooth":
+        return t < 0.5 ? 2 * t : 2 * t - 2;
+      case "triangle":
+        if (t < 0.25) return 4 * t;
+        if (t < 0.75) return 2 - 4 * t;
+        return 4 * t - 4;
+      default: // square
+        return Math.sin(p) >= 0 ? 1 : -1;
+    }
+  }
+
+  // Partial sum of the first `step` harmonics at phase p (normalised to ±1).
+  partial(p, step) {
+    let y = 0;
+    const n = Math.min(step, this.harmonics.length);
+    for (let i = 0; i < n; i++) {
+      y += this.harmonics[i].c * Math.sin(this.harmonics[i].k * p);
+    }
+    return y;
+  }
+
+  path(fn) {
+    let d = "";
+    for (let i = 0; i <= this.samples; i++) {
+      const x = (i / this.samples) * this.W;
+      const p = (2 * Math.PI * this.freq * x) / this.W;
+      const y = this.mid - this.amp * fn(p);
+      d += (i === 0 ? "M" : "L") + x.toFixed(1) + " " + y.toFixed(1);
+    }
+    return d;
+  }
+
+  build() {
+    const svg = svgEl("svg", { class: "fv-fourier", viewBox: `0 0 ${this.W} ${this.H}`, role: "img" });
+    svg.appendChild(svgEl("line", {
+      class: "fv-axis", x1: 0, y1: this.mid, x2: this.W, y2: this.mid,
+    }));
+    // Static dashed reference: the ideal target waveform the sum converges to.
+    svg.appendChild(svgEl("path", {
+      class: "fv-fourier-target", fill: "none", d: this.path((p) => this.ideal(p)),
+    }));
+    this.sum = svgEl("path", { class: "fv-fourier-sum", fill: "none" });
+    svg.appendChild(this.sum);
+    return svg;
+  }
+
+  paint(step) {
+    let d = "";
+    let peak = 0;
+    for (let i = 0; i <= this.samples; i++) {
+      const x = (i / this.samples) * this.W;
+      const p = (2 * Math.PI * this.freq * x) / this.W;
+      const v = this.partial(p, step);
+      if (Math.abs(v) > peak) peak = Math.abs(v);
+      const y = this.mid - this.amp * v;
+      d += (i === 0 ? "M" : "L") + x.toFixed(1) + " " + y.toFixed(1);
+    }
+    this.sum.setAttribute("d", d);
+    // max|partial| == max amplitude / amp -> ~1.18 for a square wave (Gibbs).
+    this.peak = peak;
+  }
+
+  readout(step) {
+    const n = Math.min(step, this.harmonics.length);
+    if (n === 0) return `step 0/${this.steps} · 0 harmonics · flat`;
+    const term = n === 1 ? "harmonic" : "harmonics";
+    return `step ${step}/${this.steps} · ${n} ${term} · peak ${(this.peak || 0).toFixed(2)}`;
+  }
+}
+
+// --- galton board renderer -------------------------------------------------
+// A quincunx: balls drop through `rows` of pegs, each bounce going left or
+// right, and land in one of `rows + 1` bins -- with enough balls the pile
+// converges on the binomial (bell) curve. The step is the number of balls
+// dropped, so play fills the board ball by ball.
+//
+// The board is genuinely random: each ball's per-row left/right decisions are
+// drawn once from Math.random() in the constructor, so every page load gives a
+// fresh board. But a ball's path is fixed for the life of the element -- the
+// engine repaints on every scrub, and re-drawing paths each frame would make the
+// pile reshuffle chaotically as you drag. So scrubbing just grows or shrinks a
+// stable pile, and every ball is the same accent colour.
+//
+// The just-dropped ball (the newest one for the current step) is animated: it
+// descends through the lattice along its own zig-zag, visibly deflecting left or
+// right at each peg row, then drops into its slot. Earlier balls are drawn
+// already settled. Because the drop freezes at the landing slot, a static frame
+// (after the motion finishes) shows the same pile a pure paint() would.
+
+class GaltonRenderer {
+  constructor(spec) {
+    this.spec = spec;
+    this.rows = Math.max(1, (spec.rows | 0) || 12);
+    this.balls = (spec.balls | 0) || 120;
+    this.steps = (spec.steps | 0) || this.balls;
+    this.bins = this.rows + 1;
+    this.W = 360;
+    this.H = 260;
+    this.pegR = 3;
+    this.ballR = 5;
+    this.rowGap = 15; // vertical spacing between peg rows
+    this.top = 20; // pegs occupy the upper band; bins stack below
+    this.binTop = this.top + this.rows * this.rowGap + 10;
+    // Seconds for a marble to fall the whole lattice. Tie it to the frame
+    // interval (1/fps) so during autoplay a marble finishes its drop just before
+    // the next one is released -- otherwise a fast fps repaints and wipes the
+    // falling marble before it has visibly moved. Leave a little margin so the
+    // ball settles before the next paint, and clamp for very slow/fast rates.
+    const fps = (spec.fps | 0) || 2;
+    this.dropDur = Math.min(0.9, Math.max(0.2, 0.85 / fps));
+
+    // Draw each ball's path once, up front, from a random seed. `walk[i]` is the
+    // sequence of +/-1 deflections (one per peg row); `landing[i]` is how many
+    // went right, i.e. the bin index. Fixing them here (not per paint) keeps the
+    // pile stable while scrubbing.
+    this.walks = [];
+    this.landing = [];
+    for (let i = 0; i < this.steps; i++) {
+      const walk = [];
+      let right = 0;
+      for (let k = 0; k < this.rows; k++) {
+        const dir = Math.random() < 0.5 ? -1 : 1;
+        walk.push(dir);
+        if (dir > 0) right++;
+      }
+      this.walks.push(walk);
+      this.landing.push(right);
+    }
+  }
+
+  binX(bin) {
+    const slot = this.W / this.bins;
+    return slot * (bin + 0.5);
+  }
+
+  build() {
+    const svg = svgEl("svg", { class: "fv-galton", viewBox: `0 0 ${this.W} ${this.H}`, role: "img" });
+    // Peg triangle: row r has r + 1 pegs, centred.
+    for (let r = 0; r < this.rows; r++) {
+      const y = this.top + r * this.rowGap;
+      const count = r + 1;
+      const slot = this.W / (count + 1);
+      for (let c = 0; c < count; c++) {
+        svg.appendChild(svgEl("circle", {
+          class: "fv-peg", cx: (slot * (c + 1)).toFixed(1), cy: y, r: this.pegR,
+        }));
+      }
+    }
+    // Bin floor + a dashed target curve for the binomial the pile approaches.
+    svg.appendChild(svgEl("line", {
+      class: "fv-galton-floor", x1: 0, y1: this.H - 2, x2: this.W, y2: this.H - 2,
+    }));
+    this.target = svgEl("path", { class: "fv-galton-target", fill: "none" });
+    svg.appendChild(this.target);
+    // A layer that holds the settled balls, repainted per step.
+    this.pile = svgEl("g", { class: "fv-galton-pile" });
+    svg.appendChild(this.pile);
+    return svg;
+  }
+
+  paint(step) {
+    // Bin heights for the first `step` balls (their landings are fixed).
+    const heights = new Array(this.bins).fill(0);
+    for (let i = 0; i < step; i++) heights[this.landing[i]]++;
+    this.peak = Math.max(1, ...heights);
+
+    const total = step || 1;
+    const coef = binomial(this.rows);
+    const denom = Math.pow(2, this.rows);
+    const floorY = this.H - 2;
+    const span = floorY - this.binTop; // balls stack down from here to the floor
+
+    // Dashed target: the ideal binomial scaled to the current ball count and
+    // the tallest bin, so the curve tracks the growing pile.
+    let d = "";
+    for (let b = 0; b < this.bins; b++) {
+      const expected = (coef[b] / denom) * total; // expected balls in bin b
+      const y = floorY - (expected / this.peak) * span;
+      d += (b === 0 ? "M" : "L") + this.binX(b).toFixed(1) + " " + y.toFixed(1);
+    }
+    this.target.setAttribute("d", d);
+
+    // Redraw the settled pile: each bin stacks its balls up from the floor. A
+    // running counter gives each ball its height without an inner scan. The
+    // newest ball (index step-1) is animated separately, so hold its slot open.
+    this.pile.textContent = "";
+    const rowH = Math.min(2 * this.ballR, span / this.peak);
+    const stacked = new Array(this.bins).fill(0);
+    const newest = step - 1;
+    const slotOf = []; // final (cx, cy) for the newest ball, if any
+    for (let i = 0; i < step; i++) {
+      const bin = this.landing[i];
+      const cy = floorY - this.ballR - stacked[bin] * rowH;
+      stacked[bin]++;
+      if (i === newest) {
+        slotOf[0] = this.binX(bin);
+        slotOf[1] = cy;
+        continue; // drawn by the animated marble below, not the static pile
+      }
+      this.pile.appendChild(svgEl("circle", {
+        class: "fv-ball",
+        cx: this.binX(bin).toFixed(1), cy: cy.toFixed(1), r: this.ballR,
+      }));
+    }
+    if (newest >= 0) this.dropNewest(newest, slotOf[0], slotOf[1]);
+    this._mode = heights.indexOf(this.peak);
+  }
+
+  // Animate the newest marble falling from the spout, bouncing left/right at
+  // each peg row, into its slot. Uses SMIL <animateMotion> when available so the
+  // motion is declarative and self-cleaning; if unsupported, the marble is just
+  // placed in its slot. Rapid scrubbing simply restarts the drop for the new
+  // newest ball -- earlier balls are already static in the pile.
+  dropNewest(i, cx, cy) {
+    const ball = svgEl("circle", { class: "fv-ball fv-ball-live", r: this.ballR });
+    if (typeof SVGAnimateMotionElement === "undefined") {
+      ball.setAttribute("cx", cx.toFixed(1));
+      ball.setAttribute("cy", cy.toFixed(1));
+      this.pile.appendChild(ball);
+      return;
+    }
+    // Park the base circle at the destination; the motion animation offsets it
+    // along the path and freezes at the end (fill=freeze), leaving it in place.
+    ball.setAttribute("cx", cx.toFixed(1));
+    ball.setAttribute("cy", cy.toFixed(1));
+    const motion = svgEl("animateMotion", {
+      dur: this.dropDur + "s",
+      fill: "freeze",
+      calcMode: "linear",
+      path: this.translatePath(i, cx, cy),
+      begin: "indefinite",
+    });
+    ball.appendChild(motion);
+    this.pile.appendChild(ball);
+    // animateMotion adds the path offset to the element's own position, so the
+    // path must be expressed as displacement from the parked destination.
+    if (typeof motion.beginElement === "function") motion.beginElement();
+  }
+
+  // dropPath in coordinates relative to the parked destination (cx, cy), since
+  // animateMotion translates the element by the path rather than moving it to
+  // absolute points.
+  translatePath(i, cx, cy) {
+    const half = this.W / this.bins / 2;
+    let p = 0;
+    let d = "M " + (this.W / 2 - cx).toFixed(1) + " " + (0 - cy).toFixed(1);
+    const walk = this.walks[i];
+    for (let r = 0; r < this.rows; r++) {
+      p += walk[r];
+      const x = this.W / 2 + p * half - cx;
+      const y = this.top + r * this.rowGap - cy;
+      d += " L " + x.toFixed(1) + " " + y.toFixed(1);
+    }
+    d += " L 0 0";
+    return d;
+  }
+
+  readout(step) {
+    return `${step}/${this.steps} balls · tallest bin ${this.peak} (bin ${this._mode < 0 ? 0 : this._mode})`;
+  }
+}
+
+// Binomial coefficients C(n, 0..n) for the target curve.
+function binomial(n) {
+  const row = [1];
+  for (let k = 1; k <= n; k++) row.push((row[k - 1] * (n - k + 1)) / k);
+  return row;
+}
+
 // The client-side half of the viz registry. Its Python counterpart,
 // `VIZ_TYPES` in directives.py, is the build-time source of truth for which
 // `type=` values are valid and which params each takes; a `type=` with no entry
 // there is reported as a build warning. Adding a shape is one `VizType` entry
 // there plus one renderer here. An unknown type still falls back to the grid.
-const RENDERERS = { grid: GridRenderer, radial: RadialRenderer, wave: WaveRenderer };
+const RENDERERS = {
+  grid: GridRenderer,
+  radial: RadialRenderer,
+  wave: WaveRenderer,
+  fourier: FourierRenderer,
+  galton: GaltonRenderer,
+};
 
 class FeynmanViz extends HTMLElement {
   connectedCallback() {

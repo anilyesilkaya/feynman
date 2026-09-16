@@ -31,8 +31,8 @@ browser.
 - **Step-driven visualisations.** A `:::viz` directive emits a `<feynman-viz>`
   custom element that renders an SVG figure which is a pure function of an
   integer step, driven by play / prev / next / scrub controls. Ships with
-  `grid`, `radial` and `wave` types; the type registry validates directives at
-  build time, warning on an unknown `type=`.
+  `grid`, `radial`, `wave`, `fourier` and `galton` types; the type registry
+  validates directives at build time, warning on an unknown `type=`.
 - **Embedded SVG figures.** A `:::figure {src=diagram.svg}` directive inlines an
   external SVG into the page as a captioned, numbered figure — sharing the same
   "Figure N" counter as executed charts and `:::viz` blocks via a `#fig-` id.

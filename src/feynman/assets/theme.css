@@ -465,12 +465,14 @@ feynman-viz {
 }
 
 /* viz internals (rendered by feynman.js) */
-.fv-grid, .fv-radial, .fv-wave {
+.fv-grid, .fv-radial, .fv-wave, .fv-fourier, .fv-galton {
   width: 100%; height: auto; display: block; margin-inline: auto;
 }
 .fv-grid { max-width: 420px; }
 .fv-radial { max-width: 340px; }
 .fv-wave { max-width: 460px; }
+.fv-fourier { max-width: 460px; }
+.fv-galton { max-width: 460px; }
 .fv-cell { transition: fill 200ms ease, opacity 200ms ease; }
 
 /* radial sweep */
@@ -485,6 +487,18 @@ feynman-viz {
 .fv-axis { stroke: var(--line); stroke-width: 1; stroke-dasharray: 3 4; }
 .fv-wave-path { stroke: var(--accent); stroke-width: 2.5; stroke-linejoin: round; }
 .fv-wave-dot { fill: var(--accent); }
+
+/* fourier synthesiser */
+.fv-fourier-target { fill: none; stroke: var(--muted); stroke-width: 1.4; stroke-dasharray: 4 5; opacity: 0.55; }
+.fv-fourier-sum { fill: none; stroke: var(--accent); stroke-width: 2.5; stroke-linejoin: round; }
+
+/* galton board. Every marble is the same accent colour -- the shape of the
+   pile, not any per-ball hue, carries the meaning. The newest marble drops
+   through the pegs (.fv-ball-live) in that same colour. */
+.fv-peg { fill: var(--muted); opacity: 0.55; }
+.fv-galton-floor { stroke: var(--line); stroke-width: 1; }
+.fv-galton-target { stroke: var(--muted); stroke-width: 1.4; stroke-dasharray: 4 5; opacity: 0.6; }
+.fv-ball { fill: var(--accent); stroke: var(--surface); stroke-width: 0.75; }
 .fv-controls {
   display: flex; align-items: center; gap: 0.75rem;
   flex-wrap: wrap; row-gap: 12px;

@@ -112,11 +112,28 @@ whole waveform slides to the right:
 y = sin(2πfx − φ), with φ advancing per step. The dot tracks the wave's value at the centre line.
 :::
 
+A **Fourier synthesiser** sums sine waves toward a target waveform — here the
+step is the number of harmonics, and the bold curve converges on the dashed
+square wave, overshooting at each jump (the Gibbs phenomenon):
+
+::: viz {type=fourier target=square terms=12 fps=3 #viz-fourier}
+Each step adds the next odd harmonic of a square wave. The readout tracks the peak, which settles near 1.18 — a persistent ~9% overshoot at the discontinuities.
+:::
+
+A **Galton board** drops marbles through a lattice of pegs; each bounces left or
+right at random, and enough of them pile up into the bell curve. Each step drops
+one more marble — watch it deflect off the pegs on its way down before settling
+into a bin:
+
+::: viz {type=galton rows=12 balls=140 fps=4 #viz-galton}
+Every marble takes a random walk, yet the pile converges on the binomial the dashed curve marks. Drag the slider to watch order emerge from independent coin flips.
+:::
+
 Adding a new shape is adding one renderer to the registry — the play / scrub /
-seek machinery never changes. Note that the three figures above — @viz-grid,
-@viz-radial and @viz-wave — share one figure counter with @fig-lengths, so a
-reader sees a single "Figure N" sequence across executed charts and driven
-visualisations alike.
+seek machinery never changes. Note that the five figures above — @viz-grid,
+@viz-radial, @viz-wave, @viz-fourier and @viz-galton — share one figure counter
+with @fig-lengths, so a reader sees a single "Figure N" sequence across executed
+charts and driven visualisations alike.
 
 ## Embedded figures {#sec-figure}
 
