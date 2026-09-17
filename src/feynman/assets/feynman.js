@@ -892,3 +892,93 @@ customElements.define("feynman-viz", FeynmanViz);
   if (document.readyState !== "loading") init();
   else document.addEventListener("DOMContentLoaded", init);
 })();
+
+// --- cross-post search -----------------------------------------------------
+// Only the collection listing page (built by `feynman build-all`) carries a
+// [data-feynman-search] form; every other page skips this entirely. The page
+// already lists all posts as links, so search is pure enhancement: we fetch
+// search-index.json, build a MiniSearch index in the browser, and reorder /
+// hide the existing post cards to match the query. With JS off, or if the fetch
+// or the MiniSearch import fails, the full static list simply remains.
+(function initSearch() {
+  const form = document.querySelector("[data-feynman-search]");
+  if (!form) return;
+  const input = form.querySelector("input[type='search']");
+  const status = form.querySelector(".search-status");
+  const list = document.querySelector("[data-feynman-post-list]");
+  const empty = document.querySelector("[data-feynman-search-empty]");
+  if (!input || !list) return;
+
+  // Map each post's url -> its <li>, and remember the authored (date) order so
+  // clearing the query restores it exactly.
+  const cards = Array.from(list.querySelectorAll("[data-post-url]"));
+  const byUrl = new Map(cards.map((li) => [li.dataset.postUrl, li]));
+  const originalOrder = cards.slice();
+
+  const say = (msg) => { if (status) status.textContent = msg; };
+
+  const showAll = () => {
+    for (const li of originalOrder) { li.hidden = false; list.appendChild(li); }
+    if (empty) empty.hidden = true;
+    say("");
+  };
+
+  const showResults = (results) => {
+    const matched = new Set();
+    // Reorder the list to match relevance, then hide the non-matches.
+    results.forEach((r) => {
+      const li = byUrl.get(r.url);
+      if (li) { li.hidden = false; list.appendChild(li); matched.add(li); }
+    });
+    for (const li of originalOrder) if (!matched.has(li)) li.hidden = true;
+    if (empty) empty.hidden = results.length > 0;
+    say(results.length
+      ? `${results.length} result${results.length === 1 ? "" : "s"}.`
+      : "No posts match your search.");
+  };
+
+  // Resolve the search-index.json next to this page (respects sub-path deploys).
+  const indexUrl = new URL("search-index.json", document.baseURI).href;
+
+  let engine = null;      // the built MiniSearch instance, once ready
+  let pending = null;     // a query typed before the index finished loading
+
+  const runQuery = (q) => {
+    const query = q.trim();
+    if (!query) { showAll(); return; }
+    if (!engine) { pending = query; say("Searching…"); return; }
+    // Prefix + fuzzy matching so partial words and small typos still hit.
+    showResults(engine.search(query, { prefix: true, fuzzy: 0.2 }));
+  };
+
+  const load = async () => {
+    try {
+      const [{ default: MiniSearch }, res] = await Promise.all([
+        import("./minisearch.min.js"),
+        fetch(indexUrl),
+      ]);
+      if (!res.ok) throw new Error(`index ${res.status}`);
+      const data = await res.json();
+      engine = new MiniSearch({
+        fields: data.fields,
+        storeFields: data.storeFields,
+        searchOptions: { prefix: true, fuzzy: 0.2 },
+      });
+      engine.addAll(data.docs || []);
+      if (pending !== null) { const q = pending; pending = null; runQuery(q); }
+    } catch (_e) {
+      // Leave the full static list in place; disable the box so it can't mislead.
+      input.disabled = true;
+      say("Search is unavailable; browse the full list below.");
+    }
+  };
+
+  let timer;
+  input.addEventListener("input", () => {
+    clearTimeout(timer);
+    timer = setTimeout(() => runQuery(input.value), 120);
+  });
+  // Load the index eagerly so the first keystroke is responsive.
+  if (document.readyState !== "loading") load();
+  else document.addEventListener("DOMContentLoaded", load);
+})();
