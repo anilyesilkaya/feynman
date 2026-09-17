@@ -220,6 +220,22 @@ work identically across all of them. Two more ship built in:
 Each links back here, so you can compare the same engine in three different
 dressings. An unrecognised `style:` falls back to this notebook theme.
 
+## Search across the collection {#sec-search}
+
+`feynman build` compiles one document; `feynman build-all <folder>` compiles a
+whole folder of them into a searchable site. Alongside each page it writes a
+[**listing page**](index.html) that shows every post and — the point of this
+section — filters them live as you type. This very demo is built that way: the
+search page above sits beside `demo.html`, `article.html` and `spec.html`.
+
+Search runs entirely in the reader's browser. The build emits a compact
+`search-index.json` (title, subtitle, tags and full text per post); the page
+builds a [MiniSearch](https://github.com/lucaong/minisearch) index from it on
+first use, with prefix and typo-tolerant matching — so *mathmatics* still finds
+this page. With JavaScript off the listing degrades to a plain set of links, so
+the collection stays navigable either way. A post marked `draft: true` in its
+front matter is left out of both the pages and the index.
+
 ## Cross-references {#sec-xref}
 
 Everything on this page is linkable. Give an element a typed label — `#eq-` for
@@ -231,5 +247,6 @@ is in @sec-tables, and the pictures live in @sec-viz. Numbers are assigned at
 build time in document order, so they stay correct as the page grows.
 
 That is the whole demo: prose and maths, code you can read, code that ran,
-pictures you can drive, and a web of cross-references tying them together — one
-connected page, generated from plain Markdown.
+pictures you can drive, a web of cross-references tying them together, and a
+[searchable collection](index.html) around it — one connected page, generated
+from plain Markdown.

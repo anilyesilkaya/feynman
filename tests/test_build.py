@@ -128,3 +128,8 @@ def test_cross_references_resolve(built_html):
 def test_no_broken_references_in_demo(built_html):
     # The demo must not ship any dangling references.
     assert "feynman-xref-broken" not in built_html
+
+
+def test_single_doc_has_no_home_link(built_html):
+    # The Home link is a collection-only feature; a standalone build omits it.
+    assert 'class="home-link"' not in built_html

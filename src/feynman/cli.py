@@ -8,6 +8,7 @@ from pathlib import Path
 
 from feynman import __version__
 from feynman.build import build_document
+from feynman.collection import build_all
 from feynman.editor import DEFAULT_PORT, EditorUnavailableError, serve_editor
 from feynman.scaffold import init_document
 
@@ -36,6 +37,33 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="Emit one self-contained HTML file (CSS, JS and images inlined) "
         "instead of a portable folder with sidecar assets.",
+    )
+
+    build_all_parser = sub.add_parser(
+        "build-all",
+        help="Build a folder of .md documents into a searchable site.",
+    )
+    build_all_parser.add_argument(
+        "source_dir",
+        type=Path,
+        help="Directory of .md documents to build (non-recursive).",
+    )
+    build_all_parser.add_argument(
+        "-o",
+        "--out",
+        type=Path,
+        default=Path("_site"),
+        help="Output directory (default: ./_site).",
+    )
+    build_all_parser.add_argument(
+        "--title",
+        default="",
+        help="Title of the search/listing page (default: the folder name).",
+    )
+    build_all_parser.add_argument(
+        "--tagline",
+        default="",
+        help="Header tagline for the listing page.",
     )
 
     init = sub.add_parser(
@@ -84,6 +112,22 @@ def main(argv: list[str] | None = None) -> int:
             return 2
         out_html = build_document(args.source, args.out, inline=args.inline)
         print(f"built {out_html}")
+        return 0
+
+    if args.command == "build-all":
+        if not args.source_dir.is_dir():
+            print(f"error: no such directory: {args.source_dir}", file=sys.stderr)
+            return 2
+        result = build_all(
+            args.source_dir, args.out, title=args.title, tagline=args.tagline
+        )
+        if not result.pages:
+            print(f"error: no documents built from {args.source_dir}", file=sys.stderr)
+            return 2
+        print(f"built {len(result.pages)} page(s) -> {args.out}")
+        if result.skipped:
+            print(f"skipped {len(result.skipped)} draft(s)")
+        print(f"search page: {result.listing}")
         return 0
 
     if args.command == "init":

@@ -45,6 +45,12 @@
         <span class="brand-tag">{{ tagline }}</span>
       </div>
       <nav class="header-actions" aria-label="Page navigation">
+        {%- if home_url %}
+        <a class="home-link" href="{{ home_url }}">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11.5 12 4l9 7.5M5 10v9a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-9"/></svg>
+          Home
+        </a>
+        {%- endif %}
         {%- block header_extra %}{% endblock %}
         <button class="icon-button feynman-theme-toggle js-only" type="button" aria-label="Switch to dark theme" aria-pressed="false">
           <svg class="icon moon-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 13.2A8.6 8.6 0 0 1 10.8 3.5 8.7 8.7 0 1 0 20.5 13.2Z"/></svg>

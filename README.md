@@ -100,6 +100,31 @@ feynman build examples/demo.md -o _site --inline
 
 That writes just `_site/demo.html` with nothing beside it.
 
+### Building a searchable collection
+
+`build` compiles one document; `build-all` compiles a *folder* of them into a
+searchable site:
+
+```bash
+feynman build-all examples -o _site --title "Feynman Posts"
+```
+
+This builds every `*.md` in the folder into its own portable page (sharing one
+set of sidecar assets) and additionally writes:
+
+- `search-index.json` — a compact record per post (title, subtitle, date, tags,
+  author and full text); and
+- `index.html` — a listing page that shows every post newest-first and, with
+  JavaScript, filters them live as you type. Search runs entirely in the browser
+  (a bundled [MiniSearch](https://github.com/lucaong/minisearch) index with
+  prefix and typo-tolerant matching) — there is no server. With JavaScript off,
+  the page still lists every post as links.
+
+A post with a truthy `draft:` front-matter key is skipped — built into neither
+the pages nor the index. Because the search page fetches `search-index.json` at
+runtime, `build-all` always emits a portable folder; `--inline` (a single
+self-contained file) applies only to per-document `build`.
+
 ### Front matter
 
 Documents start with a YAML block that drives the page chrome:

@@ -1,0 +1,51 @@
+{% extends "base.html.j2" -%}
+{# Search / listing page for a collection built with `feynman build-all`.
+
+   It lists every published post newest-first and, with JavaScript, filters them
+   live: the search box is marked `[data-feynman-search]`, which activates the
+   `initSearch` enhancer in feynman.js. That enhancer fetches search-index.json
+   and builds a MiniSearch index in the browser.
+
+   Without JavaScript the page still lists every post as links (the static <ol>
+   below), so the collection is fully navigable -- search just refines it. #}
+
+{% block footer_note %}Search across the collection.{% endblock %}
+
+{% block hero %}
+<div class="feynman-hero search-hero">
+  <p class="eyebrow hero-kicker">{{ kicker }}</p>
+  <h1 class="feynman-title">{{ hero_title }}</h1>
+  <p class="feynman-subtitle">{{ posts | length }} post{{ '' if posts | length == 1 else 's' }} in this collection.</p>
+  <form class="search-form js-only" role="search" data-feynman-search action="#" onsubmit="return false">
+    <label class="sr-only" for="feynman-search-input">Search posts</label>
+    <input
+      id="feynman-search-input"
+      class="search-input"
+      type="search"
+      name="q"
+      autocomplete="off"
+      spellcheck="false"
+      placeholder="Search titles, tags and full text…"
+      aria-describedby="feynman-search-status">
+    <p id="feynman-search-status" class="search-status" role="status" aria-live="polite"></p>
+  </form>
+</div>
+{% endblock %}
+
+{% block layout %}
+<div class="search-layout" id="notebook">
+  <ol class="post-list" data-feynman-post-list>
+    {%- for post in posts %}
+    <li class="post-card" data-post-url="{{ post.url }}">
+      <a class="post-card-link" href="{{ post.url }}">
+        {%- if post.date %}<p class="post-date">{{ post.date }}</p>{% endif %}
+        <h2 class="post-title">{{ post.title }}</h2>
+        {%- if post.subtitle %}<p class="post-subtitle">{{ post.subtitle }}</p>{% endif %}
+        {%- if post.keywords %}<p class="post-tags">{{ post.keywords }}</p>{% endif %}
+      </a>
+    </li>
+    {%- endfor %}
+  </ol>
+  <p class="search-empty" data-feynman-search-empty hidden>No posts match your search.</p>
+</div>
+{% endblock %}
