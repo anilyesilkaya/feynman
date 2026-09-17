@@ -1,0 +1,1883 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light" data-style="spec">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>Adaptive Wiener Estimator.</title>
+  <meta name="description" content="A dense, scannable layout for APIs, algorithms, standards clauses, and software documentation — the same feynman engine, dressed as a technical reference.">
+  <style>/* light: default */
+pre { line-height: 125%; }
+td.linenos .normal { color: inherit; background-color: transparent; padding-left: 5px; padding-right: 5px; }
+span.linenos { color: inherit; background-color: transparent; padding-left: 5px; padding-right: 5px; }
+td.linenos .special { color: #000000; background-color: #ffffc0; padding-left: 5px; padding-right: 5px; }
+span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 5px; padding-right: 5px; }
+:root .highlight .hll { background-color: #ffffcc }
+:root .highlight { background: #f8f8f8; }
+:root .highlight .c { color: #3D7B7B; font-style: italic } /* Comment */
+:root .highlight .err { border: 1px solid #F00 } /* Error */
+:root .highlight .k { color: #008000; font-weight: bold } /* Keyword */
+:root .highlight .o { color: #666 } /* Operator */
+:root .highlight .ch { color: #3D7B7B; font-style: italic } /* Comment.Hashbang */
+:root .highlight .cm { color: #3D7B7B; font-style: italic } /* Comment.Multiline */
+:root .highlight .cp { color: #9C6500 } /* Comment.Preproc */
+:root .highlight .cpf { color: #3D7B7B; font-style: italic } /* Comment.PreprocFile */
+:root .highlight .c1 { color: #3D7B7B; font-style: italic } /* Comment.Single */
+:root .highlight .cs { color: #3D7B7B; font-style: italic } /* Comment.Special */
+:root .highlight .gd { color: #A00000 } /* Generic.Deleted */
+:root .highlight .ge { font-style: italic } /* Generic.Emph */
+:root .highlight .ges { font-weight: bold; font-style: italic } /* Generic.EmphStrong */
+:root .highlight .gr { color: #E40000 } /* Generic.Error */
+:root .highlight .gh { color: #000080; font-weight: bold } /* Generic.Heading */
+:root .highlight .gi { color: #008400 } /* Generic.Inserted */
+:root .highlight .go { color: #717171 } /* Generic.Output */
+:root .highlight .gp { color: #000080; font-weight: bold } /* Generic.Prompt */
+:root .highlight .gs { font-weight: bold } /* Generic.Strong */
+:root .highlight .gu { color: #800080; font-weight: bold } /* Generic.Subheading */
+:root .highlight .gt { color: #04D } /* Generic.Traceback */
+:root .highlight .kc { color: #008000; font-weight: bold } /* Keyword.Constant */
+:root .highlight .kd { color: #008000; font-weight: bold } /* Keyword.Declaration */
+:root .highlight .kn { color: #008000; font-weight: bold } /* Keyword.Namespace */
+:root .highlight .kp { color: #008000 } /* Keyword.Pseudo */
+:root .highlight .kr { color: #008000; font-weight: bold } /* Keyword.Reserved */
+:root .highlight .kt { color: #B00040 } /* Keyword.Type */
+:root .highlight .m { color: #666 } /* Literal.Number */
+:root .highlight .s { color: #BA2121 } /* Literal.String */
+:root .highlight .na { color: #687822 } /* Name.Attribute */
+:root .highlight .nb { color: #008000 } /* Name.Builtin */
+:root .highlight .nc { color: #00F; font-weight: bold } /* Name.Class */
+:root .highlight .no { color: #800 } /* Name.Constant */
+:root .highlight .nd { color: #A2F } /* Name.Decorator */
+:root .highlight .ni { color: #717171; font-weight: bold } /* Name.Entity */
+:root .highlight .ne { color: #CB3F38; font-weight: bold } /* Name.Exception */
+:root .highlight .nf { color: #00F } /* Name.Function */
+:root .highlight .nl { color: #767600 } /* Name.Label */
+:root .highlight .nn { color: #00F; font-weight: bold } /* Name.Namespace */
+:root .highlight .nt { color: #008000; font-weight: bold } /* Name.Tag */
+:root .highlight .nv { color: #19177C } /* Name.Variable */
+:root .highlight .ow { color: #A2F; font-weight: bold } /* Operator.Word */
+:root .highlight .w { color: #BBB } /* Text.Whitespace */
+:root .highlight .mb { color: #666 } /* Literal.Number.Bin */
+:root .highlight .mf { color: #666 } /* Literal.Number.Float */
+:root .highlight .mh { color: #666 } /* Literal.Number.Hex */
+:root .highlight .mi { color: #666 } /* Literal.Number.Integer */
+:root .highlight .mo { color: #666 } /* Literal.Number.Oct */
+:root .highlight .sa { color: #BA2121 } /* Literal.String.Affix */
+:root .highlight .sb { color: #BA2121 } /* Literal.String.Backtick */
+:root .highlight .sc { color: #BA2121 } /* Literal.String.Char */
+:root .highlight .dl { color: #BA2121 } /* Literal.String.Delimiter */
+:root .highlight .sd { color: #BA2121; font-style: italic } /* Literal.String.Doc */
+:root .highlight .s2 { color: #BA2121 } /* Literal.String.Double */
+:root .highlight .se { color: #AA5D1F; font-weight: bold } /* Literal.String.Escape */
+:root .highlight .sh { color: #BA2121 } /* Literal.String.Heredoc */
+:root .highlight .si { color: #A45A77; font-weight: bold } /* Literal.String.Interpol */
+:root .highlight .sx { color: #008000 } /* Literal.String.Other */
+:root .highlight .sr { color: #A45A77 } /* Literal.String.Regex */
+:root .highlight .s1 { color: #BA2121 } /* Literal.String.Single */
+:root .highlight .ss { color: #19177C } /* Literal.String.Symbol */
+:root .highlight .bp { color: #008000 } /* Name.Builtin.Pseudo */
+:root .highlight .fm { color: #00F } /* Name.Function.Magic */
+:root .highlight .vc { color: #19177C } /* Name.Variable.Class */
+:root .highlight .vg { color: #19177C } /* Name.Variable.Global */
+:root .highlight .vi { color: #19177C } /* Name.Variable.Instance */
+:root .highlight .vm { color: #19177C } /* Name.Variable.Magic */
+:root .highlight .il { color: #666 } /* Literal.Number.Integer.Long */
+
+/* dark: github-dark */
+pre { line-height: 125%; }
+td.linenos .normal { color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px; }
+span.linenos { color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px; }
+td.linenos .special { color: #e6edf3; background-color: #6e7681; padding-left: 5px; padding-right: 5px; }
+span.linenos.special { color: #e6edf3; background-color: #6e7681; padding-left: 5px; padding-right: 5px; }
+[data-theme="dark"] .highlight .hll { background-color: #6e7681 }
+[data-theme="dark"] .highlight { background: #0d1117; color: #E6EDF3 }
+[data-theme="dark"] .highlight .c { color: #8B949E; font-style: italic } /* Comment */
+[data-theme="dark"] .highlight .err { color: #F85149 } /* Error */
+[data-theme="dark"] .highlight .esc { color: #E6EDF3 } /* Escape */
+[data-theme="dark"] .highlight .g { color: #E6EDF3 } /* Generic */
+[data-theme="dark"] .highlight .k { color: #FF7B72 } /* Keyword */
+[data-theme="dark"] .highlight .l { color: #A5D6FF } /* Literal */
+[data-theme="dark"] .highlight .n { color: #E6EDF3 } /* Name */
+[data-theme="dark"] .highlight .o { color: #FF7B72; font-weight: bold } /* Operator */
+[data-theme="dark"] .highlight .x { color: #E6EDF3 } /* Other */
+[data-theme="dark"] .highlight .p { color: #E6EDF3 } /* Punctuation */
+[data-theme="dark"] .highlight .ch { color: #8B949E; font-style: italic } /* Comment.Hashbang */
+[data-theme="dark"] .highlight .cm { color: #8B949E; font-style: italic } /* Comment.Multiline */
+[data-theme="dark"] .highlight .cp { color: #8B949E; font-weight: bold; font-style: italic } /* Comment.Preproc */
+[data-theme="dark"] .highlight .cpf { color: #8B949E; font-style: italic } /* Comment.PreprocFile */
+[data-theme="dark"] .highlight .c1 { color: #8B949E; font-style: italic } /* Comment.Single */
+[data-theme="dark"] .highlight .cs { color: #8B949E; font-weight: bold; font-style: italic } /* Comment.Special */
+[data-theme="dark"] .highlight .gd { color: #FFA198; background-color: #490202 } /* Generic.Deleted */
+[data-theme="dark"] .highlight .ge { color: #E6EDF3; font-style: italic } /* Generic.Emph */
+[data-theme="dark"] .highlight .ges { color: #E6EDF3; font-weight: bold; font-style: italic } /* Generic.EmphStrong */
+[data-theme="dark"] .highlight .gr { color: #FFA198 } /* Generic.Error */
+[data-theme="dark"] .highlight .gh { color: #79C0FF; font-weight: bold } /* Generic.Heading */
+[data-theme="dark"] .highlight .gi { color: #56D364; background-color: #0F5323 } /* Generic.Inserted */
+[data-theme="dark"] .highlight .go { color: #8B949E } /* Generic.Output */
+[data-theme="dark"] .highlight .gp { color: #8B949E } /* Generic.Prompt */
+[data-theme="dark"] .highlight .gs { color: #E6EDF3; font-weight: bold } /* Generic.Strong */
+[data-theme="dark"] .highlight .gu { color: #79C0FF } /* Generic.Subheading */
+[data-theme="dark"] .highlight .gt { color: #FF7B72 } /* Generic.Traceback */
+[data-theme="dark"] .highlight .g-Underline { color: #E6EDF3; text-decoration: underline } /* Generic.Underline */
+[data-theme="dark"] .highlight .kc { color: #79C0FF } /* Keyword.Constant */
+[data-theme="dark"] .highlight .kd { color: #FF7B72 } /* Keyword.Declaration */
+[data-theme="dark"] .highlight .kn { color: #FF7B72 } /* Keyword.Namespace */
+[data-theme="dark"] .highlight .kp { color: #79C0FF } /* Keyword.Pseudo */
+[data-theme="dark"] .highlight .kr { color: #FF7B72 } /* Keyword.Reserved */
+[data-theme="dark"] .highlight .kt { color: #FF7B72 } /* Keyword.Type */
+[data-theme="dark"] .highlight .ld { color: #79C0FF } /* Literal.Date */
+[data-theme="dark"] .highlight .m { color: #A5D6FF } /* Literal.Number */
+[data-theme="dark"] .highlight .s { color: #A5D6FF } /* Literal.String */
+[data-theme="dark"] .highlight .na { color: #E6EDF3 } /* Name.Attribute */
+[data-theme="dark"] .highlight .nb { color: #E6EDF3 } /* Name.Builtin */
+[data-theme="dark"] .highlight .nc { color: #F0883E; font-weight: bold } /* Name.Class */
+[data-theme="dark"] .highlight .no { color: #79C0FF; font-weight: bold } /* Name.Constant */
+[data-theme="dark"] .highlight .nd { color: #D2A8FF; font-weight: bold } /* Name.Decorator */
+[data-theme="dark"] .highlight .ni { color: #FFA657 } /* Name.Entity */
+[data-theme="dark"] .highlight .ne { color: #F0883E; font-weight: bold } /* Name.Exception */
+[data-theme="dark"] .highlight .nf { color: #D2A8FF; font-weight: bold } /* Name.Function */
+[data-theme="dark"] .highlight .nl { color: #79C0FF; font-weight: bold } /* Name.Label */
+[data-theme="dark"] .highlight .nn { color: #FF7B72 } /* Name.Namespace */
+[data-theme="dark"] .highlight .nx { color: #E6EDF3 } /* Name.Other */
+[data-theme="dark"] .highlight .py { color: #79C0FF } /* Name.Property */
+[data-theme="dark"] .highlight .nt { color: #7EE787 } /* Name.Tag */
+[data-theme="dark"] .highlight .nv { color: #79C0FF } /* Name.Variable */
+[data-theme="dark"] .highlight .ow { color: #FF7B72; font-weight: bold } /* Operator.Word */
+[data-theme="dark"] .highlight .pm { color: #E6EDF3 } /* Punctuation.Marker */
+[data-theme="dark"] .highlight .w { color: #6E7681 } /* Text.Whitespace */
+[data-theme="dark"] .highlight .mb { color: #A5D6FF } /* Literal.Number.Bin */
+[data-theme="dark"] .highlight .mf { color: #A5D6FF } /* Literal.Number.Float */
+[data-theme="dark"] .highlight .mh { color: #A5D6FF } /* Literal.Number.Hex */
+[data-theme="dark"] .highlight .mi { color: #A5D6FF } /* Literal.Number.Integer */
+[data-theme="dark"] .highlight .mo { color: #A5D6FF } /* Literal.Number.Oct */
+[data-theme="dark"] .highlight .sa { color: #79C0FF } /* Literal.String.Affix */
+[data-theme="dark"] .highlight .sb { color: #A5D6FF } /* Literal.String.Backtick */
+[data-theme="dark"] .highlight .sc { color: #A5D6FF } /* Literal.String.Char */
+[data-theme="dark"] .highlight .dl { color: #79C0FF } /* Literal.String.Delimiter */
+[data-theme="dark"] .highlight .sd { color: #A5D6FF } /* Literal.String.Doc */
+[data-theme="dark"] .highlight .s2 { color: #A5D6FF } /* Literal.String.Double */
+[data-theme="dark"] .highlight .se { color: #79C0FF } /* Literal.String.Escape */
+[data-theme="dark"] .highlight .sh { color: #79C0FF } /* Literal.String.Heredoc */
+[data-theme="dark"] .highlight .si { color: #A5D6FF } /* Literal.String.Interpol */
+[data-theme="dark"] .highlight .sx { color: #A5D6FF } /* Literal.String.Other */
+[data-theme="dark"] .highlight .sr { color: #79C0FF } /* Literal.String.Regex */
+[data-theme="dark"] .highlight .s1 { color: #A5D6FF } /* Literal.String.Single */
+[data-theme="dark"] .highlight .ss { color: #A5D6FF } /* Literal.String.Symbol */
+[data-theme="dark"] .highlight .bp { color: #E6EDF3 } /* Name.Builtin.Pseudo */
+[data-theme="dark"] .highlight .fm { color: #D2A8FF; font-weight: bold } /* Name.Function.Magic */
+[data-theme="dark"] .highlight .vc { color: #79C0FF } /* Name.Variable.Class */
+[data-theme="dark"] .highlight .vg { color: #79C0FF } /* Name.Variable.Global */
+[data-theme="dark"] .highlight .vi { color: #79C0FF } /* Name.Variable.Instance */
+[data-theme="dark"] .highlight .vm { color: #79C0FF } /* Name.Variable.Magic */
+[data-theme="dark"] .highlight .il { color: #A5D6FF } /* Literal.Number.Integer.Long */
+</style>
+  <style>/* Feynman theme -- design tokens + component styling.
+   Colour is expressed as CSS custom properties so light/dark is a pure-CSS
+   switch driven by the [data-theme] attribute on <html>. The generated
+   pygments.css follows the same convention for code tokens.
+
+   The look is a "printed notebook": warm paper, an accent ink, a serif for
+   display type and prose, a mono for code and labels. */
+
+:root {
+  --paper: #f8f7f3;
+  --surface: #fffefa;
+  --ink: #242923;
+  --body: #4c514b;
+  --muted: #73766e;
+  --line: #dedfd6;
+  --soft: #eeeee6;
+  --accent: #a64b35;
+  --accent-strong: #913c2a;
+  --accent-soft: #f4e7df;
+  --success: #38614e;
+  --success-soft: #edf2e9;
+  --error: #b4232c;
+  --error-soft: #f6e6e4;
+  /* Callout variants: a readable ink and a paper-toned wash, in the same
+     muted register as --success / --success-soft. */
+  --info: #2f5c7a;
+  --info-soft: #e7eef3;
+  --warning: #8a6614;
+  --warning-soft: #f5ecd6;
+  /* Code surface follows the theme so Pygments' light/dark token colours
+     (scoped under :root vs [data-theme=dark]) stay readable in both. */
+  --code-bg: #f3f2ea;
+  --code-toolbar: #ecebe1;
+
+  --serif: "Source Serif 4", ui-serif, Georgia, "Times New Roman", serif;
+  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --mono: ui-monospace, "SFMono-Regular", "JetBrains Mono", Consolas, "Liberation Mono", monospace;
+
+  --measure: 1180px;
+  --radius: 5px;
+  color-scheme: light;
+}
+
+[data-theme="dark"] {
+  --paper: #1c221f;
+  --surface: #232b26;
+  --ink: #eeeee1;
+  --body: #c5cbc0;
+  --muted: #a5ad9f;
+  --line: #3c463d;
+  --soft: #2b352e;
+  --accent: #e49a7d;
+  --accent-strong: #f5b59a;
+  --accent-soft: #3b302a;
+  --success: #add3b6;
+  --success-soft: #283b2e;
+  --error: #f2777a;
+  --error-soft: #3a2a2b;
+  --info: #8fc0dc;
+  --info-soft: #24333b;
+  --warning: #e0bd6f;
+  --warning-soft: #362f20;
+  --code-bg: #151b17;
+  --code-toolbar: #1f2822;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+
+html {
+  color-scheme: light dark;
+  scroll-behavior: smooth;
+  scroll-padding-top: 100px;
+}
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font: 16px/1.75 var(--sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+::selection { background: var(--accent-soft); color: var(--accent-strong); }
+
+a { color: inherit; text-decoration: none; }
+button, input { font: inherit; }
+button { cursor: pointer; background: none; border: 0; color: inherit; }
+button:disabled { cursor: default; opacity: 0.35; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
+svg { display: block; max-width: 100%; }
+
+.icon {
+  width: 17px; height: 17px;
+  fill: none; stroke: currentColor;
+  stroke-width: 1.65; stroke-linecap: round; stroke-linejoin: round;
+  flex: 0 0 auto;
+}
+
+/* Progressive enhancement: elements that only make sense with JS. */
+.js-only { display: none; }
+.js .js-only { display: inline-flex; }
+
+.feynman-container {
+  width: min(var(--measure), calc(100% - 88px));
+  margin-inline: auto;
+}
+
+.eyebrow {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 500;
+  line-height: 1.6;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.sr-only {
+  position: absolute; width: 1px; height: 1px;
+  padding: 0; margin: -1px; overflow: hidden;
+  clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+}
+.skip-link {
+  position: fixed; top: -100px; left: 24px; z-index: 50;
+  background: var(--surface); padding: 10px 16px;
+  border: 1px solid var(--accent); border-radius: var(--radius);
+}
+.skip-link:focus { top: 16px; }
+
+/* --- reading progress ------------------------------------------------ */
+.reading-progress {
+  position: fixed; inset: 0 auto auto 0; z-index: 30;
+  width: 100%; height: 3px;
+  background: var(--accent);
+  transform: scaleX(0); transform-origin: left;
+  pointer-events: none;
+}
+
+/* --- header ---------------------------------------------------------- */
+.feynman-header {
+  position: sticky; top: 0; z-index: 20;
+  /* Opaque fallback first: browsers that don't parse color-mix (or drop the
+     translucent value) keep a solid header so content never shows through. */
+  background: var(--paper);
+  background: color-mix(in srgb, var(--paper) 90%, transparent);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--line);
+}
+/* When the backdrop blur isn't available, keep the header fully opaque so it
+   can't reveal the content scrolling beneath it. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .feynman-header { background: var(--paper); }
+}
+.feynman-header-inner {
+  display: flex; align-items: center; justify-content: space-between;
+  height: 72px;
+}
+.brand { display: flex; align-items: center; gap: 18px; }
+.feynman-wordmark {
+  font-family: var(--serif);
+  font-size: 30px; letter-spacing: -1px; line-height: 1;
+}
+.feynman-wordmark b { color: var(--accent); font-weight: normal; }
+.brand-tag {
+  border-left: 1px solid var(--line); padding-left: 18px;
+  font-size: 11px; color: var(--muted); line-height: 1.5;
+}
+.header-actions { display: flex; align-items: center; gap: 24px; }
+.header-link { font-size: 12px; color: var(--body); padding-block: 8px; }
+.header-link:hover { color: var(--accent); }
+
+.icon-button {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 38px; height: 38px;
+  border: 1px solid var(--line); border-radius: 50%;
+  background: transparent; color: var(--ink);
+}
+.icon-button:hover { background: var(--soft); }
+.sun-icon, [data-theme="dark"] .moon-icon { display: none; }
+[data-theme="dark"] .sun-icon { display: block; }
+
+/* --- hero ------------------------------------------------------------ */
+.feynman-hero { padding: 64px 0 44px; }
+.hero-kicker {
+  display: flex; align-items: center; gap: 12px;
+  color: var(--accent); margin: 0 0 22px;
+}
+.hero-kicker::before { content: ""; width: 26px; height: 1px; background: var(--accent); }
+.feynman-title {
+  font-family: var(--serif); font-weight: 400;
+  font-size: clamp(48px, 6.5vw, 76px);
+  letter-spacing: -2.4px; line-height: 1.0;
+  margin: 0 0 22px;
+}
+.feynman-title em { color: var(--accent); font-style: italic; }
+.feynman-subtitle {
+  font-size: 16px; line-height: 1.8; color: var(--body);
+  max-width: 40rem; margin: 0;
+}
+.hero-source { margin: 24px 0 0; }
+.hero-source a {
+  display: inline-flex; align-items: center; gap: 8px;
+  font: 11px var(--mono); letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--muted);
+  padding-bottom: 3px; border-bottom: 1px solid var(--line);
+}
+.hero-source a:hover { color: var(--accent); border-color: var(--accent); }
+.hero-source .icon { width: 14px; height: 14px; }
+
+/* --- notebook layout: sticky TOC + prose ----------------------------- */
+.notebook-layout {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  gap: 76px;
+  padding: 60px 0 80px;
+}
+.contents { align-self: start; position: sticky; top: 108px; }
+.contents h2 { margin: 0 0 20px; font-weight: 400; }
+.contents ol {
+  margin: 0; padding: 0; list-style: none;
+  border-left: 1px solid var(--line);
+}
+.contents a {
+  display: flex; align-items: baseline; gap: 12px;
+  font-size: 12px; color: var(--muted); line-height: 1.5;
+  padding: 10px 0 10px 16px; margin-left: -1px;
+  border-left: 2px solid transparent;
+}
+.contents a span { font: 10px var(--mono); opacity: 0.8; }
+.contents a:hover { color: var(--accent); }
+.contents a[aria-current="location"] { color: var(--accent); border-color: var(--accent); }
+
+/* --- prose ----------------------------------------------------------- */
+.feynman-prose { min-width: 0; max-width: 815px; }
+.feynman-prose h2 {
+  font: 400 34px/1.2 var(--serif);
+  letter-spacing: -0.6px;
+  margin: 52px 0 18px;
+}
+.feynman-prose > h2:first-child { margin-top: 0; }
+.feynman-prose h3 { font: 400 24px/1.3 var(--serif); margin: 36px 0 14px; }
+.feynman-prose p { margin: 0 0 20px; color: var(--body); line-height: 1.85; }
+.feynman-prose a { color: var(--accent); text-underline-offset: 3px; text-decoration: underline; }
+/* Cross-reference link ("Figure 1", "Equation 2"): reads as a unit, so no
+   mid-word wrap, and a subtle dotted underline distinguishes it from prose
+   links. A broken reference (no matching label) is flagged in the error colour
+   so it is caught in review rather than shipped silently. */
+.feynman-prose a.feynman-xref {
+  white-space: nowrap;
+  text-decoration-style: dotted;
+  text-underline-offset: 2px;
+}
+.feynman-xref-broken {
+  color: var(--error); font-family: var(--mono); font-size: 0.9em;
+  text-decoration: underline wavy;
+}
+.feynman-prose strong { color: var(--ink); font-weight: 600; }
+.feynman-prose ul, .feynman-prose ol { color: var(--body); padding-left: 1.3rem; }
+.feynman-prose li { margin: 0.4rem 0; }
+.feynman-prose hr { height: 1px; border: 0; background: var(--line); margin: 48px 0; }
+.feynman-prose blockquote {
+  margin: 24px 0; padding: 4px 0 4px 20px;
+  border-left: 2px solid var(--accent);
+  color: var(--muted); font: italic 18px/1.6 var(--serif);
+}
+.feynman-prose code:not(pre code) {
+  color: var(--accent-strong); background: var(--accent-soft);
+  padding: 2px 5px; border-radius: 3px;
+  font: 0.87em var(--mono); white-space: nowrap;
+}
+/* A table is wrapped in <figure class="feynman-table-figure"> with an optional
+   "Table N" caption; the table itself sits in a scroll container so a wide table
+   scrolls horizontally rather than overflowing the measure. */
+.feynman-prose .feynman-table-figure { margin: 24px 0; }
+.feynman-prose .feynman-table-caption {
+  margin-bottom: 8px; font: 0.85rem var(--sans); color: var(--muted);
+}
+.feynman-prose .feynman-table-scroll {
+  /* Wide tables scroll horizontally rather than overflowing the measure. A
+     max-height makes a long table scroll *within* this box, which is what lets
+     the sticky header below actually stick (sticky is scoped to the nearest
+     scroll container -- with no height cap here it would never engage). */
+  overflow: auto;
+  max-height: 75vh;
+  border: 1px solid var(--line); border-radius: var(--radius);
+}
+.feynman-prose table {
+  border-collapse: collapse; width: 100%; margin: 0;
+  font-size: 0.95rem;
+}
+.feynman-prose th, .feynman-prose td {
+  border-bottom: 1px solid var(--line); padding: 0.5rem 0.75rem; text-align: left;
+}
+.feynman-prose tbody tr:last-child td { border-bottom: 0; }
+.feynman-prose thead th {
+  background: var(--soft);
+  position: sticky; top: 0; z-index: 1;
+}
+/* Numeric (right-aligned) cells read best with lined-up, tabular figures. */
+.feynman-prose td[style*="text-align:right"],
+.feynman-prose th[style*="text-align:right"] {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Striped + compact variants (opt-in via `.striped` / `.compact`). */
+.feynman-prose .feynman-table-striped tbody tr:nth-child(even) { background: var(--soft); }
+.feynman-prose .feynman-table-compact th,
+.feynman-prose .feynman-table-compact td { padding: 0.3rem 0.6rem; }
+
+/* Sortable headers: a pointer affordance and a caret that reflects aria-sort.
+   Enhanced only when JS is on (the runtime adds .feynman-th-sortable). */
+.feynman-prose .feynman-th-sortable {
+  cursor: pointer; user-select: none; white-space: nowrap;
+}
+.feynman-prose .feynman-th-sortable::after {
+  content: "\2195"; /* up-down arrow, idle */
+  margin-left: 0.4em; opacity: 0.35; font-size: 0.85em;
+}
+.feynman-prose .feynman-th-sortable[aria-sort="ascending"]::after { content: "\2191"; opacity: 0.8; }
+.feynman-prose .feynman-th-sortable[aria-sort="descending"]::after { content: "\2193"; opacity: 0.8; }
+.feynman-prose .feynman-th-sortable:focus-visible {
+  outline: 2px solid var(--accent); outline-offset: -2px;
+}
+
+/* --- maths (native MathML) ------------------------------------------ */
+math { font-family: "Cambria Math", "Latin Modern Math", math; }
+math[display="inline"] { padding-inline: 2px; font-size: 1.06em; }
+.math-error { color: var(--error); font-family: var(--mono); }
+
+.equation-panel {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center; gap: 12px;
+  padding: 24px 26px;
+  border: 1px solid var(--line); border-radius: var(--radius);
+  background: var(--surface);
+  margin: 26px 0;
+}
+.equation-panel math[display="block"] {
+  display: block; margin: 0;
+  font-size: 1.35rem; color: var(--ink); text-align: left;
+}
+/* Equation number: the (n) an @eq- reference points at. Sits between the maths
+   and the copy button, so the panel is [ equation | (n) | copy ]. */
+.equation-number {
+  font: 13px var(--mono); color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.equation-copy {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 34px; height: 34px;
+  border: 1px solid var(--line); border-radius: var(--radius);
+  color: var(--muted);
+}
+.equation-copy:hover { color: var(--accent); border-color: var(--accent); }
+.equation-copy .icon { width: 15px; height: 15px; }
+
+/* Bare (non-panel) block equations still get their own centred line. */
+math[display="block"] { display: block; margin: 1.5rem 0; text-align: center; }
+
+/* --- code cards & executed cells ------------------------------------ */
+.feynman-code,
+.feynman-cell {
+  margin: 24px 0;
+  border: 1px solid var(--line); border-radius: var(--radius);
+  overflow: hidden;
+}
+/* Figure / listing number shown in a caption ("Figure 1"), and the target an
+   @fig-/@viz- reference lands on. Set in the accent so it reads as a label. */
+.feynman-fig-label {
+  color: var(--accent-strong);
+  font-weight: 600;
+}
+.code-toolbar {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  background: var(--code-toolbar); color: var(--muted);
+  padding: 11px 18px;
+  border-bottom: 1px solid var(--line);
+  font: 10px var(--mono); letter-spacing: 0.04em;
+}
+.code-label { display: flex; align-items: center; gap: 8px; text-transform: uppercase; color: var(--body); }
+.code-label .icon { width: 14px; height: 14px; }
+.copy-button {
+  display: inline-flex; align-items: center; gap: 6px;
+  color: var(--muted); padding: 4px 2px 4px 10px;
+  font: 10px var(--mono); letter-spacing: 0.04em;
+}
+.copy-button:hover { color: var(--accent); }
+.copy-button .icon { width: 13px; height: 13px; }
+
+/* Pygments sets its own .highlight background/colour (light under :root, dark
+   under [data-theme=dark]); we only need layout + font here. */
+.feynman-code .highlight,
+.feynman-cell .highlight {
+  margin: 0;
+}
+.feynman-code .highlight pre,
+.feynman-cell .highlight pre {
+  margin: 0; padding: 20px;
+  overflow-x: auto;
+  font: 12px/1.85 var(--mono);
+  tab-size: 4;
+  scrollbar-width: thin;
+}
+
+.feynman-cell-output {
+  background: var(--success-soft);
+  padding: 16px 20px;
+  border-top: 1px solid var(--line);
+}
+.output-label {
+  display: flex; align-items: center; gap: 8px;
+  color: var(--success); font: 9px var(--mono);
+  letter-spacing: 0.08em; text-transform: uppercase;
+  margin-bottom: 8px;
+}
+.output-label .icon { width: 12px; height: 12px; }
+.feynman-output-text,
+.feynman-output-error {
+  margin: 0;
+  font: 12px/1.7 var(--mono);
+  white-space: pre-wrap; overflow-wrap: anywhere;
+}
+.feynman-output-text { color: var(--success); }
+.feynman-output-error { color: var(--error); }
+.feynman-output-figure { background: var(--surface); padding: 12px; border-radius: var(--radius); }
+.feynman-output-figure svg,
+.feynman-output-figure img { max-width: 100%; height: auto; display: block; margin-inline: auto; }
+.feynman-output-html { overflow-x: auto; background: var(--surface); padding: 12px; border-radius: var(--radius); }
+
+/* --- callout boxes --------------------------------------------------- */
+/* A soft, variant-tinted wash with a coloured left rule, modelled on the
+   executed-cell output block. Colour comes from the variant tokens, so the
+   box recolours with the theme; per-variant rules only swap those two vars. */
+.feynman-box {
+  margin: 24px 0;
+  padding: 16px 20px;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--info);
+  border-radius: var(--radius);
+  background: var(--info-soft);
+}
+.feynman-box-info { border-left-color: var(--info); background: var(--info-soft); }
+.feynman-box-warning { border-left-color: var(--warning); background: var(--warning-soft); }
+.feynman-box-error { border-left-color: var(--error); background: var(--error-soft); }
+
+/* Header row (icon + title), styled like .output-label. */
+.feynman-box-title {
+  display: flex; align-items: center; gap: 8px;
+  font: 10px var(--mono); letter-spacing: 0.06em; text-transform: uppercase;
+  margin-bottom: 8px;
+}
+/* A titleless box floats its icon at the top-left as a small variant marker. */
+.feynman-box > .feynman-box-icon {
+  float: left; margin: 1px 10px 4px 0;
+}
+/* A touch larger than the shared .icon, and a heavier stroke so the interior
+   marks (the i's dot, the ! ) stay crisp at this small size. */
+.feynman-box-icon .icon { width: 17px; height: 17px; stroke-width: 2; }
+.feynman-box > .feynman-box-icon .icon { width: 19px; height: 19px; }
+.feynman-box-info .feynman-box-title,
+.feynman-box-info > .feynman-box-icon { color: var(--info); }
+.feynman-box-warning .feynman-box-title,
+.feynman-box-warning > .feynman-box-icon { color: var(--warning); }
+.feynman-box-error .feynman-box-title,
+.feynman-box-error > .feynman-box-icon { color: var(--error); }
+
+/* The body is ordinary prose; trim the outer margins so the padding reads
+   evenly, and clear the floated icon of a titleless box. */
+.feynman-box > :last-child { margin-bottom: 0; }
+.feynman-box-title + * { margin-top: 0; }
+.feynman-box::after { content: ""; display: block; clear: both; }
+
+/* --- viz ------------------------------------------------------------- */
+.feynman-viz-figure { margin: 26px 0; }
+feynman-viz {
+  display: block;
+  border: 1px solid var(--line); border-radius: var(--radius);
+  background: var(--surface);
+  padding: 20px 24px;
+}
+.feynman-viz-figure figcaption {
+  color: var(--muted); font-size: 11px; line-height: 1.75;
+  margin-top: 12px;
+}
+
+/* --- embedded figures (:::figure) ------------------------------------ */
+/* An external SVG inlined into the body. Framed like a viz block so the two
+   read as one family; the SVG scales to the column width. */
+.feynman-figure { margin: 26px 0; }
+.feynman-figure-svg {
+  max-width: 100%; height: auto; display: block; margin-inline: auto;
+  border: 1px solid var(--line); border-radius: var(--radius);
+  background: var(--surface); padding: 20px 24px;
+}
+/* theme=auto only: the root carries --ink so `currentColor` marks follow the
+   theme and flip in dark mode. Verbatim figures get no colour override. */
+.feynman-figure-themed { color: var(--ink); }
+.feynman-figure figcaption {
+  color: var(--muted); font-size: 11px; line-height: 1.75;
+  margin-top: 12px;
+}
+.feynman-figure-missing {
+  color: var(--muted); border: 1px dashed var(--line);
+  border-radius: var(--radius); background: var(--surface);
+  padding: 20px 24px; text-align: center; font-size: 12px;
+}
+
+/* viz internals (rendered by feynman.js) */
+.fv-grid, .fv-radial, .fv-wave, .fv-fourier, .fv-galton {
+  width: 100%; height: auto; display: block; margin-inline: auto;
+}
+.fv-grid { max-width: 420px; }
+.fv-radial { max-width: 340px; }
+.fv-wave { max-width: 460px; }
+.fv-fourier { max-width: 460px; }
+.fv-galton { max-width: 460px; }
+.fv-cell { transition: fill 200ms ease, opacity 200ms ease; }
+
+/* radial sweep */
+.fv-ring { fill: none; stroke: var(--line); stroke-width: 1; }
+.fv-dot { transition: fill 200ms ease, opacity 200ms ease; }
+.fv-sweep {
+  stroke: var(--accent); stroke-width: 2; stroke-linecap: round;
+  opacity: 0.85; transition: none;
+}
+
+/* travelling wave */
+.fv-axis { stroke: var(--line); stroke-width: 1; stroke-dasharray: 3 4; }
+.fv-wave-path { stroke: var(--accent); stroke-width: 2.5; stroke-linejoin: round; }
+.fv-wave-dot { fill: var(--accent); }
+
+/* fourier synthesiser */
+.fv-fourier-target { fill: none; stroke: var(--muted); stroke-width: 1.4; stroke-dasharray: 4 5; opacity: 0.55; }
+.fv-fourier-sum { fill: none; stroke: var(--accent); stroke-width: 2.5; stroke-linejoin: round; }
+
+/* galton board. Every marble is the same accent colour -- the shape of the
+   pile, not any per-ball hue, carries the meaning. The newest marble drops
+   through the pegs (.fv-ball-live) in that same colour. */
+.fv-peg { fill: var(--muted); opacity: 0.55; }
+.fv-galton-floor { stroke: var(--line); stroke-width: 1; }
+.fv-galton-target { stroke: var(--muted); stroke-width: 1.4; stroke-dasharray: 4 5; opacity: 0.6; }
+.fv-ball { fill: var(--accent); stroke: var(--surface); stroke-width: 0.75; }
+.fv-controls {
+  display: flex; align-items: center; gap: 0.75rem;
+  flex-wrap: wrap; row-gap: 12px;
+  margin-top: 16px; padding-top: 16px;
+  border-top: 1px solid var(--line);
+  font: 10px var(--mono); color: var(--muted);
+}
+.fv-controls button {
+  border: 1px solid var(--line); background: var(--paper);
+  color: var(--body); border-radius: 4px;
+  padding: 0.3rem 0.65rem; font: inherit;
+}
+.fv-controls button:hover { border-color: var(--accent); color: var(--accent); }
+/* Keep a usable track: when the buttons + readout leave too little room, the
+   slider wraps to its own line rather than collapsing to a bare thumb. */
+.fv-controls input[type="range"] { flex: 1 1 140px; accent-color: var(--accent); min-width: 120px; }
+.fv-step { text-align: right; color: var(--body); margin-left: auto; }
+
+/* --- footer ---------------------------------------------------------- */
+.feynman-footer {
+  border-top: 1px solid var(--line);
+  color: var(--muted); font-size: 11px;
+  padding-block: 24px 30px;
+}
+.footer-inner { display: flex; justify-content: space-between; gap: 20px; align-items: center; }
+.footer-inner a { font-family: var(--serif); font-size: 18px; color: var(--ink); }
+
+/* --- toast ----------------------------------------------------------- */
+.toast {
+  position: fixed; bottom: 22px; left: 50%; z-index: 40;
+  transform: translateX(-50%);
+  background: var(--ink); color: var(--paper);
+  font-size: 12px; padding: 10px 17px; border-radius: var(--radius);
+  box-shadow: 0 3px 15px #0003;
+  max-width: calc(100% - 32px);
+}
+.toast:empty { display: none; }
+
+/* --- responsive ------------------------------------------------------ */
+@media (max-width: 1080px) {
+  .feynman-container { width: calc(100% - 64px); }
+  .notebook-layout { gap: 38px; grid-template-columns: 176px minmax(0, 1fr); }
+  .contents a { font-size: 11px; gap: 10px; padding-left: 12px; }
+  .highlight pre { font-size: 11px; }
+}
+@media (max-width: 820px) {
+  .notebook-layout { display: block; padding-top: 42px; }
+  /* Compound selector (.contents.js-only) so this beats `.js .js-only`, which
+     is equally specific but sets display:inline-flex; otherwise the sticky TOC
+     stays visible and overlays the prose on mobile. */
+  .contents,
+  .contents.js-only { display: none; }
+  .feynman-prose { max-width: 100%; }
+  .highlight pre { font-size: 12px; }
+}
+@media (max-width: 580px) {
+  html { scroll-padding-top: 84px; }
+  .feynman-container { width: calc(100% - 40px); }
+  .feynman-header-inner { height: 62px; }
+  .brand-tag { display: none; }
+  .feynman-hero { padding: 40px 0 32px; }
+  .feynman-prose h2 { font-size: 28px; }
+  .highlight pre { font-size: 11px; }
+  .footer-inner { flex-direction: column; align-items: flex-start; gap: 8px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+
+@media print {
+  :root, [data-theme="dark"] {
+    --paper: #fff; --surface: #fff; --ink: #20251f; --body: #3b4039;
+    --muted: #62665f; --line: #ddd; --accent: #91432e;
+    --success: #365742; --success-soft: #f4f7f1; --code-toolbar: #f0efe8;
+  }
+  .feynman-header, .header-actions, .contents, .reading-progress,
+  .fv-controls, .copy-button, .equation-copy, .toast { display: none !important; }
+  .notebook-layout { display: block; }
+  .feynman-code .highlight pre, .feynman-cell .highlight pre { white-space: pre-wrap; }
+  figure, .equation-panel, h2 { break-inside: avoid; }
+  * { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+}
+</style>
+  <style>/* Reference / Specification theme -- layered over theme.css.
+   Dense and scannable: a wider measure, status badges in the hero, bordered
+   section heads and sans-serif subheads for fast lookup. Only the frame and
+   prose typography change; the generated body markup is unchanged. */
+
+:root { --measure: 1200px; }
+
+.spec-hero { padding: 44px 0 30px; border-bottom: 1px solid var(--line); }
+.spec-hero .feynman-title { font-size: clamp(36px, 4.5vw, 56px); margin-bottom: 14px; }
+.spec-hero .feynman-subtitle { margin-top: 18px; }
+.spec-meta { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 22px; }
+.badge {
+  border: 1px solid var(--line); background: var(--surface);
+  border-radius: 999px; padding: 5px 10px;
+  font: 10px var(--mono); letter-spacing: 0.04em; color: var(--muted);
+}
+.badge.stable {
+  color: var(--success);
+  border-color: color-mix(in srgb, var(--success) 40%, var(--line));
+}
+
+.spec-layout {
+  display: grid; grid-template-columns: 210px minmax(0, 1fr);
+  gap: 48px; padding: 44px 0 82px;
+}
+.spec-prose { max-width: 820px; }
+
+/* Section heads carry a top rule so clauses are easy to scan; subheads drop to
+   the sans face so they read as structure rather than prose. */
+.spec-prose h2 {
+  padding-top: 14px; border-top: 1px solid var(--line);
+  font-size: 30px;
+}
+.spec-prose > h2:first-child { border-top: 0; padding-top: 0; }
+.spec-prose h3 {
+  font-family: var(--sans); font-weight: 650; font-size: 17px;
+  letter-spacing: 0; margin-top: 30px;
+}
+
+@media (max-width: 1050px) {
+  .spec-layout { grid-template-columns: 180px minmax(0, 1fr); gap: 36px; }
+}
+@media (max-width: 820px) {
+  .spec-layout { display: block; padding-top: 38px; }
+  .spec-layout .contents, .spec-layout .contents.js-only { display: none; }
+  .spec-prose { max-width: 100%; }
+}
+</style>
+  <script>
+    // Add the `js` class and apply the stored theme before first paint so
+    // JS-only chrome appears without a flash of the wrong theme.
+    document.documentElement.classList.add('js');
+    try {
+      var t = localStorage.getItem('feynman-theme');
+      if (t === 'dark' || t === 'light') document.documentElement.dataset.theme = t;
+    } catch (e) {}
+  </script>
+  <script type="module">// Feynman runtime -- the only JavaScript shipped to the reader.
+//
+// Two responsibilities:
+//   1. <feynman-viz>: a step-driven visualisation. It reads a JSON spec and
+//      renders one of several shapes -- a box grid, a radial sweep, a
+//      travelling wave, a Fourier synthesiser, or a Galton board -- driven by
+//      play / prev / next / scrub controls. IntersectionObserver pauses
+//      playback while offscreen.
+//   2. the light/dark theme toggle in the header.
+//
+// The single architectural idea: every visualisation is a pure function of an
+// integer step. A "type" selects a renderer; the driving machinery is shared.
+//
+// No dependencies, no build step; this file is served verbatim.
+
+const SVG_NS = "http://www.w3.org/2000/svg";
+
+function svgEl(name, attrs) {
+  const el = document.createElementNS(SVG_NS, name);
+  for (const k in attrs) el.setAttribute(k, attrs[k]);
+  return el;
+}
+
+// --- grid renderer ---------------------------------------------------------
+// patterns: (row, col, step, spec) -> boolean "is this cell active?". Each is a
+// pure function of the step; new box behaviours are new entries here.
+const PATTERNS = {
+  // Cells whose centre falls inside the quarter circle of radius = grid size.
+  // The fraction of revealed cells inside the circle approaches pi/4.
+  circle: (r, c, step, spec) => {
+    const n = spec.rows || 8;
+    if (c >= step) return false; // reveal column by column
+    const x = (c + 0.5) / n;
+    const y = (n - r - 0.5) / n; // flip y: circle sits bottom-left
+    return x * x + y * y <= 1;
+  },
+  // Lower-triangular mask revealed one row per step.
+  causal: (r, c, step) => c <= r && r < step,
+  // A grid filling left to right, one column per step.
+  fill: (r, c, step) => c < step,
+  // Diagonal wavefront sweeping across the grid.
+  diagonal: (r, c, step) => r + c < step,
+};
+
+class GridRenderer {
+  constructor(spec) {
+    this.spec = spec;
+    this.rows = (spec.rows | 0) || 8;
+    this.cols = (spec.cols | 0) || 8;
+    this.steps = (spec.steps | 0) || this.rows;
+    this.pattern = PATTERNS[spec.pattern] || PATTERNS.causal;
+  }
+
+  build() {
+    const gap = 2;
+    const size = 30;
+    const w = this.cols * (size + gap) - gap;
+    const h = this.rows * (size + gap) - gap;
+    const svg = svgEl("svg", { class: "fv-grid", viewBox: `0 0 ${w} ${h}`, role: "img" });
+    this.cells = [];
+    for (let r = 0; r < this.rows; r++) {
+      for (let c = 0; c < this.cols; c++) {
+        const rect = svgEl("rect", {
+          class: "fv-cell",
+          x: c * (size + gap), y: r * (size + gap),
+          width: size, height: size, rx: 4,
+        });
+        rect.dataset.r = r;
+        rect.dataset.c = c;
+        svg.appendChild(rect);
+        this.cells.push(rect);
+      }
+    }
+    return svg;
+  }
+
+  paint(step) {
+    const active = "var(--accent)";
+    const idle = "var(--line)";
+    const isCircle = this.spec.pattern === "circle";
+    this.on = 0;
+    this.revealed = 0;
+    for (const rect of this.cells) {
+      const r = +rect.dataset.r;
+      const c = +rect.dataset.c;
+      const isOn = this.pattern(r, c, step, this.spec);
+      if (isCircle ? c < step : true) this.revealed++;
+      rect.setAttribute("fill", isOn ? active : idle);
+      rect.setAttribute("opacity", isOn ? "1" : "0.35");
+      if (isOn) this.on++;
+    }
+  }
+
+  readout(step) {
+    if (this.spec.pattern === "circle" && this.revealed > 0) {
+      const estimate = (4 * this.on) / this.revealed;
+      return `step ${step}/${this.steps} · π ≈ ${estimate.toFixed(3)}`;
+    }
+    return `step ${step}/${this.steps} · ${this.on} on`;
+  }
+}
+
+// --- radial renderer -------------------------------------------------------
+// A polar field of dots arranged in rings and spokes, swept like radar. The
+// sweep line rotates by one spoke per step; every point it has passed lights
+// up. One full turn lights the whole field.
+class RadialRenderer {
+  constructor(spec) {
+    this.spec = spec;
+    this.rings = (spec.rings | 0) || 5;
+    this.spokes = (spec.spokes | 0) || 16;
+    this.steps = (spec.steps | 0) || this.spokes;
+    this.cx = 120;
+    this.cy = 120;
+    this.maxR = 104;
+  }
+
+  angle(step) {
+    // Start the sweep at the top (−90°) and rotate clockwise.
+    return (step / this.steps) * 2 * Math.PI - Math.PI / 2;
+  }
+
+  build() {
+    const svg = svgEl("svg", { class: "fv-radial", viewBox: "0 0 240 240", role: "img" });
+    for (let i = 1; i <= this.rings; i++) {
+      svg.appendChild(svgEl("circle", {
+        class: "fv-ring", cx: this.cx, cy: this.cy, r: (i / this.rings) * this.maxR,
+      }));
+    }
+    this.dots = [];
+    for (let j = 0; j < this.spokes; j++) {
+      const ang = (j / this.spokes) * 2 * Math.PI - Math.PI / 2;
+      for (let i = 1; i <= this.rings; i++) {
+        const r = (i / this.rings) * this.maxR;
+        const dot = svgEl("circle", {
+          class: "fv-dot",
+          cx: (this.cx + r * Math.cos(ang)).toFixed(1),
+          cy: (this.cy + r * Math.sin(ang)).toFixed(1),
+          r: 4.5,
+        });
+        dot.dataset.j = j;
+        svg.appendChild(dot);
+        this.dots.push(dot);
+      }
+    }
+    this.sweep = svgEl("line", {
+      class: "fv-sweep", x1: this.cx, y1: this.cy, x2: this.cx, y2: this.cy - this.maxR,
+    });
+    svg.appendChild(this.sweep);
+    return svg;
+  }
+
+  paint(step) {
+    const active = "var(--accent)";
+    const idle = "var(--line)";
+    this.on = 0;
+    for (const dot of this.dots) {
+      const isOn = +dot.dataset.j < step;
+      dot.setAttribute("fill", isOn ? active : idle);
+      dot.setAttribute("opacity", isOn ? "1" : "0.3");
+      if (isOn) this.on++;
+    }
+    const ang = this.angle(step);
+    this.sweep.setAttribute("x2", (this.cx + this.maxR * Math.cos(ang)).toFixed(1));
+    this.sweep.setAttribute("y2", (this.cy + this.maxR * Math.sin(ang)).toFixed(1));
+  }
+
+  readout(step) {
+    return `step ${step}/${this.steps} · ${this.on} points lit`;
+  }
+}
+
+// --- wave renderer ---------------------------------------------------------
+// A travelling sine wave: y = sin(2π f x/W − φ), with the phase φ advancing one
+// increment per step so the whole waveform slides to the right.
+class WaveRenderer {
+  constructor(spec) {
+    this.spec = spec;
+    this.steps = (spec.steps | 0) || 24;
+    this.amp = (spec.amp | 0) || 54;
+    this.freq = (spec.freq | 0) || 2;
+    this.samples = 64;
+    this.W = 320;
+    this.H = 160;
+    this.mid = 80;
+  }
+
+  yAt(x, step) {
+    const phase = (step / this.steps) * 2 * Math.PI;
+    return this.mid - this.amp * Math.sin((2 * Math.PI * this.freq * x) / this.W - phase);
+  }
+
+  build() {
+    const svg = svgEl("svg", { class: "fv-wave", viewBox: `0 0 ${this.W} ${this.H}`, role: "img" });
+    svg.appendChild(svgEl("line", {
+      class: "fv-axis", x1: 0, y1: this.mid, x2: this.W, y2: this.mid,
+    }));
+    this.path = svgEl("path", { class: "fv-wave-path", fill: "none" });
+    svg.appendChild(this.path);
+    this.dot = svgEl("circle", {
+      class: "fv-wave-dot", r: 5, cx: this.W / 2, cy: this.mid,
+    });
+    svg.appendChild(this.dot);
+    return svg;
+  }
+
+  paint(step) {
+    let d = "";
+    for (let i = 0; i <= this.samples; i++) {
+      const x = (i / this.samples) * this.W;
+      const y = this.yAt(x, step);
+      d += (i === 0 ? "M" : "L") + x.toFixed(1) + " " + y.toFixed(1);
+    }
+    this.path.setAttribute("d", d);
+    this.cy = this.yAt(this.W / 2, step);
+    this.dot.setAttribute("cy", this.cy.toFixed(1));
+  }
+
+  readout(step) {
+    const value = (this.mid - this.cy) / this.amp;
+    return `step ${step}/${this.steps} · sin φ = ${value.toFixed(2)}`;
+  }
+}
+
+// --- fourier renderer ------------------------------------------------------
+// A Fourier-series synthesiser: the step is the number of harmonic terms
+// summed. The partial sum converges toward a target waveform (square by
+// default), exposing the Gibbs overshoot at its jumps. A faint dashed
+// reference of the ideal target sits behind the bold accent partial sum.
+//
+// Each target gives the coefficient of its k-th harmonic; coefficients are
+// normalised so the ideal waveform peaks at ±1 and `amp` scales that to pixels
+// (as in WaveRenderer). Term N adds the N-th *nonzero* harmonic. New target
+// waveforms are new entries here -- the analogue of the grid's PATTERNS.
+const FOURIER_TARGETS = {
+  // Odd harmonics, all positive: (4/π)/k. Discontinuous -> Gibbs (peak ~1.18).
+  square: (k) => (k % 2 === 1 ? 4 / Math.PI / k : 0),
+  // Every harmonic, alternating sign: (2/π)(-1)^(k+1)/k. Discontinuous.
+  sawtooth: (k) => ((k % 2 === 1 ? 1 : -1) * 2) / (Math.PI * k),
+  // Odd harmonics, sign flips each term, 1/k² decay. Continuous -> no Gibbs.
+  triangle: (k) =>
+    k % 2 === 1
+      ? ((((k - 1) / 2) % 2 === 0 ? 1 : -1) * 8) / (Math.PI * Math.PI * k * k)
+      : 0,
+};
+
+class FourierRenderer {
+  constructor(spec) {
+    this.spec = spec;
+    this.terms = (spec.terms | 0) || 8;
+    this.steps = (spec.steps | 0) || this.terms;
+    this.amp = (spec.amp | 0) || 54;
+    this.freq = (spec.freq | 0) || 1;
+    this.target = FOURIER_TARGETS[spec.target] ? spec.target : "square";
+    this.coef = FOURIER_TARGETS[this.target];
+    this.W = 320;
+    this.H = 160;
+    this.mid = 80;
+
+    // Precompute the first `steps` nonzero harmonics as {k, c} pairs, so a step
+    // is simply "how many of these to sum".
+    this.harmonics = [];
+    for (let k = 1; this.harmonics.length < this.steps; k++) {
+      const c = this.coef(k);
+      if (c !== 0) this.harmonics.push({ k, c });
+    }
+    // Sample density tracks the highest harmonic so the Gibbs spike doesn't
+    // alias; capped so a large `terms` can't blow up the path.
+    const top = this.harmonics.length ? this.harmonics[this.harmonics.length - 1].k : 1;
+    this.samples = Math.min(512, Math.max(128, 8 * top));
+  }
+
+  // Ideal target value at phase p, normalised to ±1 (the dashed reference).
+  ideal(p) {
+    const t = (((p / (2 * Math.PI)) % 1) + 1) % 1; // fractional period 0..1
+    switch (this.target) {
+      case "sawtooth":
+        return t < 0.5 ? 2 * t : 2 * t - 2;
+      case "triangle":
+        if (t < 0.25) return 4 * t;
+        if (t < 0.75) return 2 - 4 * t;
+        return 4 * t - 4;
+      default: // square
+        return Math.sin(p) >= 0 ? 1 : -1;
+    }
+  }
+
+  // Partial sum of the first `step` harmonics at phase p (normalised to ±1).
+  partial(p, step) {
+    let y = 0;
+    const n = Math.min(step, this.harmonics.length);
+    for (let i = 0; i < n; i++) {
+      y += this.harmonics[i].c * Math.sin(this.harmonics[i].k * p);
+    }
+    return y;
+  }
+
+  path(fn) {
+    let d = "";
+    for (let i = 0; i <= this.samples; i++) {
+      const x = (i / this.samples) * this.W;
+      const p = (2 * Math.PI * this.freq * x) / this.W;
+      const y = this.mid - this.amp * fn(p);
+      d += (i === 0 ? "M" : "L") + x.toFixed(1) + " " + y.toFixed(1);
+    }
+    return d;
+  }
+
+  build() {
+    const svg = svgEl("svg", { class: "fv-fourier", viewBox: `0 0 ${this.W} ${this.H}`, role: "img" });
+    svg.appendChild(svgEl("line", {
+      class: "fv-axis", x1: 0, y1: this.mid, x2: this.W, y2: this.mid,
+    }));
+    // Static dashed reference: the ideal target waveform the sum converges to.
+    svg.appendChild(svgEl("path", {
+      class: "fv-fourier-target", fill: "none", d: this.path((p) => this.ideal(p)),
+    }));
+    this.sum = svgEl("path", { class: "fv-fourier-sum", fill: "none" });
+    svg.appendChild(this.sum);
+    return svg;
+  }
+
+  paint(step) {
+    let d = "";
+    let peak = 0;
+    for (let i = 0; i <= this.samples; i++) {
+      const x = (i / this.samples) * this.W;
+      const p = (2 * Math.PI * this.freq * x) / this.W;
+      const v = this.partial(p, step);
+      if (Math.abs(v) > peak) peak = Math.abs(v);
+      const y = this.mid - this.amp * v;
+      d += (i === 0 ? "M" : "L") + x.toFixed(1) + " " + y.toFixed(1);
+    }
+    this.sum.setAttribute("d", d);
+    // max|partial| == max amplitude / amp -> ~1.18 for a square wave (Gibbs).
+    this.peak = peak;
+  }
+
+  readout(step) {
+    const n = Math.min(step, this.harmonics.length);
+    if (n === 0) return `step 0/${this.steps} · 0 harmonics · flat`;
+    const term = n === 1 ? "harmonic" : "harmonics";
+    return `step ${step}/${this.steps} · ${n} ${term} · peak ${(this.peak || 0).toFixed(2)}`;
+  }
+}
+
+// --- galton board renderer -------------------------------------------------
+// A quincunx: balls drop through `rows` of pegs, each bounce going left or
+// right, and land in one of `rows + 1` bins -- with enough balls the pile
+// converges on the binomial (bell) curve. The step is the number of balls
+// dropped, so play fills the board ball by ball.
+//
+// The board is genuinely random: each ball's per-row left/right decisions are
+// drawn once from Math.random() in the constructor, so every page load gives a
+// fresh board. But a ball's path is fixed for the life of the element -- the
+// engine repaints on every scrub, and re-drawing paths each frame would make the
+// pile reshuffle chaotically as you drag. So scrubbing just grows or shrinks a
+// stable pile, and every ball is the same accent colour.
+//
+// The just-dropped ball (the newest one for the current step) is animated: it
+// descends through the lattice along its own zig-zag, visibly deflecting left or
+// right at each peg row, then drops into its slot. Earlier balls are drawn
+// already settled. Because the drop freezes at the landing slot, a static frame
+// (after the motion finishes) shows the same pile a pure paint() would.
+
+class GaltonRenderer {
+  constructor(spec) {
+    this.spec = spec;
+    this.rows = Math.max(1, (spec.rows | 0) || 12);
+    this.balls = (spec.balls | 0) || 120;
+    this.steps = (spec.steps | 0) || this.balls;
+    this.bins = this.rows + 1;
+    this.W = 360;
+    this.H = 260;
+    this.pegR = 3;
+    this.ballR = 5;
+    this.rowGap = 15; // vertical spacing between peg rows
+    this.top = 20; // pegs occupy the upper band; bins stack below
+    this.binTop = this.top + this.rows * this.rowGap + 10;
+    // Seconds for a marble to fall the whole lattice. Tie it to the frame
+    // interval (1/fps) so during autoplay a marble finishes its drop just before
+    // the next one is released -- otherwise a fast fps repaints and wipes the
+    // falling marble before it has visibly moved. Leave a little margin so the
+    // ball settles before the next paint, and clamp for very slow/fast rates.
+    const fps = (spec.fps | 0) || 2;
+    this.dropDur = Math.min(0.9, Math.max(0.2, 0.85 / fps));
+
+    // Draw each ball's path once, up front, from a random seed. `walk[i]` is the
+    // sequence of +/-1 deflections (one per peg row); `landing[i]` is how many
+    // went right, i.e. the bin index. Fixing them here (not per paint) keeps the
+    // pile stable while scrubbing.
+    this.walks = [];
+    this.landing = [];
+    for (let i = 0; i < this.steps; i++) {
+      const walk = [];
+      let right = 0;
+      for (let k = 0; k < this.rows; k++) {
+        const dir = Math.random() < 0.5 ? -1 : 1;
+        walk.push(dir);
+        if (dir > 0) right++;
+      }
+      this.walks.push(walk);
+      this.landing.push(right);
+    }
+  }
+
+  binX(bin) {
+    const slot = this.W / this.bins;
+    return slot * (bin + 0.5);
+  }
+
+  build() {
+    const svg = svgEl("svg", { class: "fv-galton", viewBox: `0 0 ${this.W} ${this.H}`, role: "img" });
+    // Peg triangle: row r has r + 1 pegs, centred.
+    for (let r = 0; r < this.rows; r++) {
+      const y = this.top + r * this.rowGap;
+      const count = r + 1;
+      const slot = this.W / (count + 1);
+      for (let c = 0; c < count; c++) {
+        svg.appendChild(svgEl("circle", {
+          class: "fv-peg", cx: (slot * (c + 1)).toFixed(1), cy: y, r: this.pegR,
+        }));
+      }
+    }
+    // Bin floor + a dashed target curve for the binomial the pile approaches.
+    svg.appendChild(svgEl("line", {
+      class: "fv-galton-floor", x1: 0, y1: this.H - 2, x2: this.W, y2: this.H - 2,
+    }));
+    this.target = svgEl("path", { class: "fv-galton-target", fill: "none" });
+    svg.appendChild(this.target);
+    // A layer that holds the settled balls, repainted per step.
+    this.pile = svgEl("g", { class: "fv-galton-pile" });
+    svg.appendChild(this.pile);
+    return svg;
+  }
+
+  paint(step) {
+    // Bin heights for the first `step` balls (their landings are fixed).
+    const heights = new Array(this.bins).fill(0);
+    for (let i = 0; i < step; i++) heights[this.landing[i]]++;
+    this.peak = Math.max(1, ...heights);
+
+    const total = step || 1;
+    const coef = binomial(this.rows);
+    const denom = Math.pow(2, this.rows);
+    const floorY = this.H - 2;
+    const span = floorY - this.binTop; // balls stack down from here to the floor
+
+    // Dashed target: the ideal binomial scaled to the current ball count and
+    // the tallest bin, so the curve tracks the growing pile.
+    let d = "";
+    for (let b = 0; b < this.bins; b++) {
+      const expected = (coef[b] / denom) * total; // expected balls in bin b
+      const y = floorY - (expected / this.peak) * span;
+      d += (b === 0 ? "M" : "L") + this.binX(b).toFixed(1) + " " + y.toFixed(1);
+    }
+    this.target.setAttribute("d", d);
+
+    // Redraw the settled pile: each bin stacks its balls up from the floor. A
+    // running counter gives each ball its height without an inner scan. The
+    // newest ball (index step-1) is animated separately, so hold its slot open.
+    this.pile.textContent = "";
+    const rowH = Math.min(2 * this.ballR, span / this.peak);
+    const stacked = new Array(this.bins).fill(0);
+    const newest = step - 1;
+    const slotOf = []; // final (cx, cy) for the newest ball, if any
+    for (let i = 0; i < step; i++) {
+      const bin = this.landing[i];
+      const cy = floorY - this.ballR - stacked[bin] * rowH;
+      stacked[bin]++;
+      if (i === newest) {
+        slotOf[0] = this.binX(bin);
+        slotOf[1] = cy;
+        continue; // drawn by the animated marble below, not the static pile
+      }
+      this.pile.appendChild(svgEl("circle", {
+        class: "fv-ball",
+        cx: this.binX(bin).toFixed(1), cy: cy.toFixed(1), r: this.ballR,
+      }));
+    }
+    if (newest >= 0) this.dropNewest(newest, slotOf[0], slotOf[1]);
+    this._mode = heights.indexOf(this.peak);
+  }
+
+  // Animate the newest marble falling from the spout, bouncing left/right at
+  // each peg row, into its slot. Uses SMIL <animateMotion> when available so the
+  // motion is declarative and self-cleaning; if unsupported, the marble is just
+  // placed in its slot. Rapid scrubbing simply restarts the drop for the new
+  // newest ball -- earlier balls are already static in the pile.
+  dropNewest(i, cx, cy) {
+    const ball = svgEl("circle", { class: "fv-ball fv-ball-live", r: this.ballR });
+    if (typeof SVGAnimateMotionElement === "undefined") {
+      ball.setAttribute("cx", cx.toFixed(1));
+      ball.setAttribute("cy", cy.toFixed(1));
+      this.pile.appendChild(ball);
+      return;
+    }
+    // Park the base circle at the destination; the motion animation offsets it
+    // along the path and freezes at the end (fill=freeze), leaving it in place.
+    ball.setAttribute("cx", cx.toFixed(1));
+    ball.setAttribute("cy", cy.toFixed(1));
+    const motion = svgEl("animateMotion", {
+      dur: this.dropDur + "s",
+      fill: "freeze",
+      calcMode: "linear",
+      path: this.translatePath(i, cx, cy),
+      begin: "indefinite",
+    });
+    ball.appendChild(motion);
+    this.pile.appendChild(ball);
+    // animateMotion adds the path offset to the element's own position, so the
+    // path must be expressed as displacement from the parked destination.
+    if (typeof motion.beginElement === "function") motion.beginElement();
+  }
+
+  // dropPath in coordinates relative to the parked destination (cx, cy), since
+  // animateMotion translates the element by the path rather than moving it to
+  // absolute points.
+  translatePath(i, cx, cy) {
+    const half = this.W / this.bins / 2;
+    let p = 0;
+    let d = "M " + (this.W / 2 - cx).toFixed(1) + " " + (0 - cy).toFixed(1);
+    const walk = this.walks[i];
+    for (let r = 0; r < this.rows; r++) {
+      p += walk[r];
+      const x = this.W / 2 + p * half - cx;
+      const y = this.top + r * this.rowGap - cy;
+      d += " L " + x.toFixed(1) + " " + y.toFixed(1);
+    }
+    d += " L 0 0";
+    return d;
+  }
+
+  readout(step) {
+    return `${step}/${this.steps} balls · tallest bin ${this.peak} (bin ${this._mode < 0 ? 0 : this._mode})`;
+  }
+}
+
+// Binomial coefficients C(n, 0..n) for the target curve.
+function binomial(n) {
+  const row = [1];
+  for (let k = 1; k <= n; k++) row.push((row[k - 1] * (n - k + 1)) / k);
+  return row;
+}
+
+// The client-side half of the viz registry. Its Python counterpart,
+// `VIZ_TYPES` in directives.py, is the build-time source of truth for which
+// `type=` values are valid and which params each takes; a `type=` with no entry
+// there is reported as a build warning. Adding a shape is one `VizType` entry
+// there plus one renderer here. An unknown type still falls back to the grid.
+const RENDERERS = {
+  grid: GridRenderer,
+  radial: RadialRenderer,
+  wave: WaveRenderer,
+  fourier: FourierRenderer,
+  galton: GaltonRenderer,
+};
+
+class FeynmanViz extends HTMLElement {
+  connectedCallback() {
+    this.spec = this.readSpec();
+    const Renderer = RENDERERS[this.spec.type] || RENDERERS.grid;
+    this.renderer = new Renderer(this.spec);
+    this.playing = false;
+    this.timer = null;
+    this.build();
+    // Open on a partially-advanced frame so a reader who never presses play
+    // still sees a meaningful picture.
+    const initial = this.spec.start != null ? this.spec.start : Math.round(this.steps * 0.6);
+    this.seek(initial);
+    this.observe();
+  }
+
+  disconnectedCallback() {
+    this.stop();
+    if (this.io) this.io.disconnect();
+  }
+
+  readSpec() {
+    const el = this.querySelector(".feynman-viz-spec");
+    const fallback = { type: "grid" };
+    if (!el) return fallback;
+    try {
+      return Object.assign(fallback, JSON.parse(el.textContent));
+    } catch (_e) {
+      return fallback;
+    }
+  }
+
+  build() {
+    this.steps = this.renderer.steps;
+    if (this.step == null) this.step = 0;
+    // Wipe any prerendered content (the spec script) and rebuild.
+    this.textContent = "";
+    this.appendChild(this.renderer.build());
+    this.buildControls();
+    this.paint();
+  }
+
+  buildControls() {
+    const bar = document.createElement("div");
+    bar.className = "fv-controls";
+
+    this.playBtn = button("play", () => this.toggle());
+    const prev = button("‹", () => this.seek(this.step - 1));
+    const next = button("›", () => this.seek(this.step + 1));
+
+    this.range = document.createElement("input");
+    this.range.type = "range";
+    this.range.min = "0";
+    this.range.max = String(this.steps);
+    this.range.value = "0";
+    this.range.setAttribute("aria-label", "Step");
+    this.range.addEventListener("input", () => this.seek(this.range.valueAsNumber));
+
+    this.readout = document.createElement("span");
+    this.readout.className = "fv-step";
+
+    bar.append(this.playBtn, prev, next, this.range, this.readout);
+    this.appendChild(bar);
+  }
+
+  paint() {
+    this.renderer.paint(this.step);
+    if (this.range) this.range.value = String(this.step);
+    if (this.readout) this.readout.textContent = this.renderer.readout(this.step);
+  }
+
+  seek(step) {
+    this.step = Math.max(0, Math.min(this.steps, step | 0));
+    this.paint();
+  }
+
+  toggle() {
+    this.playing ? this.stop() : this.play();
+  }
+
+  play() {
+    this.playing = true;
+    this.playBtn.textContent = "pause";
+    const fps = this.spec.fps || 2;
+    this.timer = setInterval(() => {
+      const next = this.step >= this.steps ? 0 : this.step + 1;
+      this.seek(next);
+    }, 1000 / fps);
+  }
+
+  stop() {
+    this.playing = false;
+    if (this.playBtn) this.playBtn.textContent = "play";
+    if (this.timer) {
+      clearInterval(this.timer);
+      this.timer = null;
+    }
+  }
+
+  observe() {
+    // Pause when scrolled offscreen so no cycles are spent on unseen figures.
+    if (!("IntersectionObserver" in window)) return;
+    this.io = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (!entry.isIntersecting && this.playing) this.stop();
+        }
+      },
+      { threshold: 0.1 }
+    );
+    this.io.observe(this);
+  }
+}
+
+function button(label, onClick) {
+  const b = document.createElement("button");
+  b.type = "button";
+  b.textContent = label;
+  b.addEventListener("click", onClick);
+  return b;
+}
+
+customElements.define("feynman-viz", FeynmanViz);
+
+// --- theme toggle ----------------------------------------------------------
+// The inline head script already applied any stored theme before first paint;
+// here we only sync the button's a11y state and handle clicks. The sun/moon
+// icons themselves are swapped by CSS on [data-theme].
+(function initTheme() {
+  const root = document.documentElement;
+  const KEY = "feynman-theme";
+  if (!localStorage.getItem(KEY) && window.matchMedia &&
+      window.matchMedia("(prefers-color-scheme: dark)").matches) {
+    root.dataset.theme = "dark";
+  }
+
+  const sync = () => {
+    const btn = document.querySelector(".feynman-theme-toggle");
+    if (!btn) return;
+    const dark = root.dataset.theme === "dark";
+    btn.setAttribute("aria-label", `Switch to ${dark ? "light" : "dark"} theme`);
+    btn.setAttribute("aria-pressed", String(dark));
+  };
+
+  document.addEventListener("click", (e) => {
+    const toggle = e.target.closest(".feynman-theme-toggle");
+    if (!toggle) return;
+    root.dataset.theme = root.dataset.theme === "dark" ? "light" : "dark";
+    try { localStorage.setItem(KEY, root.dataset.theme); } catch (_e) {}
+    sync();
+  });
+
+  if (document.readyState !== "loading") sync();
+  else document.addEventListener("DOMContentLoaded", sync);
+})();
+
+// --- copy buttons ----------------------------------------------------------
+// Code cards copy their highlighted source; equation buttons copy raw LaTeX
+// from data-latex. A small toast confirms (or explains the manual fallback).
+(function initCopy() {
+  const toast = document.querySelector(".toast");
+  let timer;
+  const announce = (msg) => {
+    if (!toast) return;
+    clearTimeout(timer);
+    toast.textContent = msg;
+    timer = setTimeout(() => { toast.textContent = ""; }, 2500);
+  };
+
+  const copyText = async (text) => {
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        const ta = document.createElement("textarea");
+        ta.value = text;
+        ta.setAttribute("readonly", "");
+        ta.style.cssText = "position:fixed;left:-9999px;top:0";
+        document.body.append(ta);
+        ta.select();
+        let ok;
+        try { ok = document.execCommand("copy"); } finally { ta.remove(); }
+        if (!ok) throw new Error("clipboard unavailable");
+      }
+      return true;
+    } catch (_e) {
+      return false;
+    }
+  };
+
+  document.addEventListener("click", async (e) => {
+    const codeBtn = e.target.closest(".copy-button");
+    if (codeBtn) {
+      const pre = codeBtn.closest("figure")?.querySelector(".highlight pre");
+      const ok = pre && (await copyText(pre.textContent));
+      announce(ok ? "Code copied to clipboard." : "Press Ctrl+C / ⌘C to copy.");
+      return;
+    }
+    const eqBtn = e.target.closest(".equation-copy");
+    if (eqBtn) {
+      const ok = await copyText(eqBtn.dataset.latex || "");
+      announce(ok ? "LaTeX copied to clipboard." : "Press Ctrl+C / ⌘C to copy.");
+    }
+  });
+})();
+
+// --- table of contents + reading progress ---------------------------------
+// The page ships with an empty <ol> in the sidebar; we fill it from the h2s so
+// the document stays the single source of truth for its own structure.
+(function initContents() {
+  const list = document.querySelector(".contents ol");
+  const aside = document.querySelector(".contents");
+  const headings = Array.from(document.querySelectorAll(".feynman-prose h2[id]"));
+  const links = [];
+
+  if (list && headings.length) {
+    headings.forEach((h, i) => {
+      const li = document.createElement("li");
+      const a = document.createElement("a");
+      a.href = `#${h.id}`;
+      const num = document.createElement("span");
+      num.textContent = String(i + 1).padStart(2, "0");
+      a.append(num, document.createTextNode(h.textContent));
+      li.append(a);
+      list.append(li);
+      links.push(a);
+    });
+    if (aside) aside.setAttribute("aria-hidden", "false");
+  }
+
+  const progress = document.querySelector(".reading-progress");
+  const root = document.documentElement;
+  let queued = false;
+
+  const update = () => {
+    queued = false;
+    const available = root.scrollHeight - root.clientHeight;
+    const ratio = available > 0 ? Math.min(1, Math.max(0, window.scrollY / available)) : 0;
+    if (progress) progress.style.transform = `scaleX(${ratio})`;
+    if (!headings.length) return;
+    let active = headings[0];
+    for (const h of headings) if (h.getBoundingClientRect().top <= 140) active = h;
+    if (ratio > 0.995) active = headings[headings.length - 1];
+    for (const a of links) {
+      if (a.hash === `#${active.id}`) a.setAttribute("aria-current", "location");
+      else a.removeAttribute("aria-current");
+    }
+  };
+  const queue = () => { if (!queued) { queued = true; requestAnimationFrame(update); } };
+  window.addEventListener("scroll", queue, { passive: true });
+  window.addEventListener("resize", queue, { passive: true });
+  update();
+})();
+
+// --- sortable tables -------------------------------------------------------
+// Progressive enhancement for tables authored with `.sortable`: click (or
+// Enter/Space on) a header to sort the tbody rows by that column, toggling
+// ascending/descending. The static table is fully readable without this; we
+// only reorder existing rows, so nothing is hidden when JS is off.
+(function initSortableTables() {
+  // A column is numeric when every non-empty cell parses as a number (commas
+  // and surrounding whitespace tolerated), so "1,000" and "30" sort by value
+  // while text columns fall back to a locale compare.
+  const parseNum = (text) => {
+    const cleaned = text.trim().replace(/,/g, "");
+    if (cleaned === "" || !/^[-+]?\d*\.?\d+(?:e[-+]?\d+)?$/i.test(cleaned)) return null;
+    return parseFloat(cleaned);
+  };
+
+  const columnIsNumeric = (rows, col) => {
+    let sawValue = false;
+    for (const row of rows) {
+      const text = (row.cells[col]?.textContent || "").trim();
+      if (text === "") continue;
+      if (parseNum(text) === null) return false;
+      sawValue = true;
+    }
+    return sawValue;
+  };
+
+  const sortBy = (table, th, col) => {
+    const tbody = table.tBodies[0];
+    if (!tbody) return;
+    const rows = Array.from(tbody.rows);
+    const numeric = columnIsNumeric(rows, col);
+    // Third click could reset, but toggling asc/desc is the common expectation;
+    // `aria-sort` on the header is the single source of truth for direction.
+    const asc = th.getAttribute("aria-sort") !== "ascending";
+
+    rows.sort((ra, rb) => {
+      const a = (ra.cells[col]?.textContent || "").trim();
+      const b = (rb.cells[col]?.textContent || "").trim();
+      let cmp;
+      if (numeric) {
+        const na = parseNum(a), nb = parseNum(b);
+        // Empty cells sort last regardless of direction.
+        if (na === null) return nb === null ? 0 : 1;
+        if (nb === null) return -1;
+        cmp = na - nb;
+      } else {
+        cmp = a.localeCompare(b, undefined, { numeric: true });
+      }
+      return asc ? cmp : -cmp;
+    });
+
+    for (const row of rows) tbody.appendChild(row);
+
+    // Reflect state: clear siblings, mark this header.
+    const headers = th.parentElement ? Array.from(th.parentElement.cells) : [];
+    for (const h of headers) h.removeAttribute("aria-sort");
+    th.setAttribute("aria-sort", asc ? "ascending" : "descending");
+  };
+
+  const enhance = (table) => {
+    const headRow = table.tHead && table.tHead.rows[0];
+    if (!headRow) return;
+    Array.from(headRow.cells).forEach((th, col) => {
+      th.classList.add("feynman-th-sortable");
+      th.setAttribute("role", "button");
+      th.tabIndex = 0;
+      const activate = () => sortBy(table, th, col);
+      th.addEventListener("click", activate);
+      th.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          activate();
+        }
+      });
+    });
+  };
+
+  const init = () => {
+    document.querySelectorAll("table.feynman-table-sortable").forEach(enhance);
+  };
+  if (document.readyState !== "loading") init();
+  else document.addEventListener("DOMContentLoaded", init);
+})();
+</script>
+</head>
+<body id="top">
+  <a class="skip-link" href="#notebook">Skip to content</a>
+  <div class="reading-progress" aria-hidden="true"></div>
+
+  <header class="feynman-header">
+    <div class="feynman-container feynman-header-inner">
+      <div class="brand">
+        <a class="feynman-wordmark" href="#top" aria-label="feynman, back to top">feynman<b>.</b></a>
+        <span class="brand-tag">Technical reference</span>
+      </div>
+      <nav class="header-actions" aria-label="Page navigation">
+        <button class="icon-button feynman-theme-toggle js-only" type="button" aria-label="Switch to dark theme" aria-pressed="false">
+          <svg class="icon moon-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 13.2A8.6 8.6 0 0 1 10.8 3.5 8.7 8.7 0 1 0 20.5 13.2Z"/></svg>
+          <svg class="icon sun-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5"/></svg>
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="feynman-container">
+<header class="spec-hero">
+  <p class="eyebrow hero-kicker">Reference / specification</p>
+  <h1 class="feynman-title">Adaptive Wiener <em>Estimator.</em></h1>
+  <p class="feynman-subtitle">A dense, scannable layout for APIs, algorithms, standards clauses, and software documentation — the same feynman engine, dressed as a technical reference.</p>
+  <div class="spec-meta">
+    <span class="badge stable">Stable</span>
+    <span class="badge">Signal Processing</span>
+    <span class="badge">Since 2.1</span>
+    <span class="badge">Updated 2026-09-16</span>
+  </div>
+  <p class="hero-source">
+    <a href="https://github.com/anilyesilkaya/feynman/blob/main/examples/spec.md">
+      <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3h7v7m0-7L10 14M19 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"/></svg>
+      View the source Markdown
+    </a>
+  </p>
+</header>
+
+<div class="spec-layout" id="notebook">
+  <aside class="contents js-only" aria-hidden="true">
+    <nav aria-label="Table of contents">
+      <h2 class="eyebrow">Reference</h2>
+      <ol></ol>
+    </nav>
+  </aside>
+  <article class="feynman-prose spec-prose">
+    <p>This page is built with <code>style: spec</code>. It is a sibling of the
+<a href="demo.html">main demo</a> (the default <code>notebook</code> theme) and the
+<a href="article.html">research article</a> (the <code>article</code> theme). The status chips above
+come from the front-matter <code>badges:</code> list; the one reading <strong>Stable</strong> picks up
+the success tint.</p>
+<h2 id="sec-summary">Summary</h2>
+<p>Estimates a desired sequence from noisy observations using second-order
+statistics. Put the one-paragraph contract first: what the thing does, its
+scope, and the single most important constraint. The spec theme uses a wider
+measure and rules each section head, so a reader can scan clauses quickly.</p>
+<h2 id="sec-syntax">Syntax</h2>
+<p>A fenced block is highlighted at build time — a specimen to read, with a copy
+button:</p>
+<figure class="feynman-code" data-lang="python" id="lst-call"><figcaption class="code-toolbar"><span class="code-label"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m8 7-5 5 5 5m8-10 5 5-5 5m-3-13-2 16"/></svg>python<small>Listing 1</small></span><button type="button" class="copy-button js-only" aria-label="Copy code"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V4H4v12h4"/></svg>Copy</button></figcaption><div class="highlight"><pre><span></span><span class="n">xhat</span> <span class="o">=</span> <span class="n">wiener_estimate</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">H</span><span class="p">,</span> <span class="n">noise_variance</span><span class="p">)</span>
+<span class="n">xhat</span> <span class="o">=</span> <span class="n">wiener_estimate</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">H</span><span class="p">,</span> <span class="n">noise_variance</span><span class="p">,</span> <span class="n">regularization</span><span class="o">=</span><span class="mf">1e-8</span><span class="p">)</span>
+</pre></div>
+</figure><h2 id="sec-params">Parameters</h2>
+<p><a class="feynman-xref" href="#tbl-params">Table 1</a> lists the call arguments. Click a column header to sort — the table
+opts into that with a <code>{.sortable #tbl-params}</code> line above it.</p>
+<figure class="feynman-table-figure" id="tbl-params"><figcaption class="feynman-table-caption"><span class="feynman-fig-label">Table 1</span></figcaption><div class="feynman-table-scroll"><table class="feynman-table feynman-table-sortable"><thead>
+<tr>
+<th>Name</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>y</code></td>
+<td>array_like</td>
+<td>Observed samples.</td>
+</tr>
+<tr>
+<td><code>H</code></td>
+<td>matrix</td>
+<td>Known linear system or channel matrix.</td>
+</tr>
+<tr>
+<td><code>noise_variance</code></td>
+<td>float</td>
+<td>Nonnegative noise variance.</td>
+</tr>
+<tr>
+<td><code>regularization</code></td>
+<td>float</td>
+<td>Optional numerical stabilisation term.</td>
+</tr>
+</tbody>
+</table></div></figure><h2 id="sec-algorithm">Algorithm</h2>
+<p>State the model, then give the governing expression without burying it in prose:</p>
+<div class="equation-panel" id="eq-wiener"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><mrow><mover accent="true"><mrow><mi>x</mi></mrow><mo>&#x0005E;</mo></mover><mo>&#x0003D;</mo><mo stretchy="false">&#x00028;</mo><msup><mi>H</mi><mrow><mi>H</mi></mrow></msup><mi>H</mi><mo>&#x0002B;</mo><msup><mi>&#x003C3;</mi><mrow><mn>2</mn></mrow></msup><mi>I</mi><msup><mo stretchy="false">&#x00029;</mo><mrow><mo>&#x02212;</mo><mn>1</mn></mrow></msup><msup><mi>H</mi><mrow><mi>H</mi></mrow></msup><mi>y</mi></mrow></math><span class="equation-number">(1)</span><button type="button" class="equation-copy js-only" data-latex="\hat{x} = (H^{H} H + \sigma^{2} I)^{-1} H^{H} y" aria-label="Copy LaTeX source"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V4H4v12h4"/></svg></button></div><p><a class="feynman-xref" href="#eq-wiener">Equation 1</a> is the minimum-mean-square-error estimate under a linear-Gaussian
+model.</p>
+<div class="feynman-box feynman-box-warning" role="note"><div class="feynman-box-title"><span class="feynman-box-icon" aria-hidden="true"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><rect x="11" y="9" width="2" height="5" rx="1" fill="currentColor" stroke="none"/><circle cx="12" cy="17" r="1.35" fill="currentColor" stroke="none"/></svg></span><span>Numerical note</span></div><p>In implementations, solve the linear system directly rather than forming an
+explicit matrix inverse.</p>
+</div><h2 id="sec-notes">Notes and limitations</h2>
+<ul>
+<li>Document dimensional assumptions explicitly.</li>
+<li>Separate normative requirements from explanatory notes.</li>
+<li>Keep examples minimal and task-oriented.</li>
+<li>Cross-reference equations, listings and clauses — see <a class="feynman-xref" href="#eq-wiener">Equation 1</a> and
+<a class="feynman-xref" href="#lst-call">Listing 1</a> above.</li>
+</ul>
+<p>For the other built-in layouts, see the <a href="demo.html">notebook demo</a> and the
+<a href="article.html">research article</a>.</p>
+
+  </article>
+</div>
+
+  </main>
+
+  <footer class="feynman-footer">
+    <div class="feynman-container footer-inner">
+      <span>Built with <a href="#top">feynman.</a></span>
+      <span>Designed for fast technical lookup.</span>
+    </div>
+  </footer>
+
+  <div class="toast" role="status" aria-live="polite"></div>
+</body>
+</html>
