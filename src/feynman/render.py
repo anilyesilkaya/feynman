@@ -175,12 +175,14 @@ class FeynmanRenderer(RendererHTML):
         cell_results: list[CellResult],
         collector: AssetCollector | None = None,
         targets: dict[str, Target] | None = None,
+        current_url: str = "",
     ):
         super().__init__()
         self._cells = cell_results
         self._exec_cursor = 0
         self._collector = collector
         self._targets = targets or {}
+        self._current_url = current_url
 
     # --- maths -------------------------------------------------------------
     def math_inline(self, tokens, idx, options, env):
@@ -201,7 +203,9 @@ class FeynmanRenderer(RendererHTML):
     # --- cross-references --------------------------------------------------
     def xref(self, tokens, idx, options, env):
         label = tokens[idx].content
-        return crossref.render_xref(self._targets.get(label), label)
+        return crossref.render_xref(
+            self._targets.get(label), label, self._current_url
+        )
 
     # --- code fences -------------------------------------------------------
     def fence(self, tokens, idx, options, env):
@@ -334,17 +338,40 @@ def _collect_figure_infos(tokens: list[Token]) -> list[str]:
     return [t.info for t in tokens if t.type == "container_figure_open"]
 
 
+def parse_document(text: str):
+    """Split front matter and parse the body to a token stream.
+
+    Returns ``(doc, md, tokens)``. Factored out so the book builder can run the
+    cross-reference pre-pass over a chapter's tokens (to number targets before
+    any page is rendered) without duplicating the parse setup.
+    """
+    doc = split_front_matter(text)
+    md = make_md()
+    tokens = md.parse(doc.body)
+    return doc, md, tokens
+
+
 def render_document(
-    text: str, *, collector: AssetCollector | None = None
+    text: str,
+    *,
+    collector: AssetCollector | None = None,
+    targets: dict[str, Target] | None = None,
+    current_url: str = "",
 ) -> tuple[Document, str]:
     """Parse and render a document; return metadata and HTML body.
 
     ``collector`` receives every local image reference; when ``None`` (the
     default) image refs are left untouched.
+
+    ``targets`` overrides the per-document cross-reference numbering with a
+    book-wide map (the book builder collects every chapter's targets up front so
+    a reference can resolve into another chapter). When given, the local
+    numbering pre-pass and its dangling-reference warnings are skipped: the book
+    builder owns those, since a reference may legitimately resolve to a target in
+    a different file. ``current_url`` is this page's URL, used to keep same-page
+    references bare while cross-chapter ones gain a ``chapter.html`` prefix.
     """
-    doc = split_front_matter(text)
-    md = make_md()
-    tokens = md.parse(doc.body)
+    doc, md, tokens = parse_document(text)
 
     # Warn once, at build time, about any viz directive naming an unknown type
     # (the reader would silently fall back to the grid renderer otherwise).
@@ -370,15 +397,21 @@ def render_document(
     # Cross-reference pre-pass: number every labelled element before rendering
     # so a reference can point forward to a target not yet emitted. Warn about
     # unknown label prefixes, duplicates, and references that resolve to nothing.
-    targets, label_warnings = crossref.collect_targets(tokens)
-    for warning in label_warnings + crossref.dangling_ref_warnings(tokens, targets):
-        print(f"warning: {warning}", file=sys.stderr)
+    # A caller-supplied book-wide map (``targets``) short-circuits this: the book
+    # builder already numbered every chapter and owns the dangling-ref check,
+    # because a reference here may resolve to a target in a different file.
+    if targets is None:
+        targets, label_warnings = crossref.collect_targets(tokens)
+        for warning in label_warnings + crossref.dangling_ref_warnings(tokens, targets):
+            print(f"warning: {warning}", file=sys.stderr)
 
     # Strip option lines before execution so ``#|`` directives never run.
     sources = _collect_executable_sources(tokens)
     exec_sources = [_cell_options(s)[1] for s in sources]
     cell_results = execute_cells(exec_sources)
 
-    md.renderer = FeynmanRenderer(cell_results, collector=collector, targets=targets)
+    md.renderer = FeynmanRenderer(
+        cell_results, collector=collector, targets=targets, current_url=current_url
+    )
     body = md.renderer.render(tokens, md.options, {})
     return doc, body

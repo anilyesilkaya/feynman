@@ -125,6 +125,30 @@ the pages nor the index. Because the search page fetches `search-index.json` at
 runtime, `build-all` always emits a portable folder; `--inline` (a single
 self-contained file) applies only to per-document `build`.
 
+### Building a book
+
+Where `build-all` makes a flat, search-first collection, `book` builds the same
+kind of folder as an *ordered, interconnected* one — chapters read in sequence,
+each with prev/next navigation and a shared contents page:
+
+```bash
+feynman book examples/book -o _site --title "Signals"
+```
+
+Chapters are ordered by an `order:` front-matter key (integer; filename order is
+the fallback), numbered from 1, and rendered with the `book` theme's chapter
+chrome. Two things set a book apart from a plain collection:
+
+- **Per-chapter numbering** — figures, equations, listings and tables number as
+  `Figure 3.2` ("2nd figure of chapter 3"), each chapter restarting at 1.
+- **Cross-chapter references** — a `@fig-bars` in one chapter that points at a
+  label defined in another resolves across files, rendering `Figure 3.2` linking
+  to `that-chapter.html#fig-bars`. Same-page references stay bare anchors.
+
+`book` writes a `contents.html` entry page (the "Home" each chapter links back
+to) listing every chapter in reading order. Like `build-all`, it always emits a
+portable folder and excludes truthy `draft:` chapters.
+
 ### Front matter
 
 Documents start with a YAML block that drives the page chrome:
@@ -137,7 +161,7 @@ subtitle: One page exercising every capability.
 kicker: A small notebook, four capabilities
 tagline: Ideas, made understandable.
 theme: light                     # initial colour mode (light | dark)
-style: notebook                  # built-in theme (notebook | article | spec)
+style: notebook                  # built-in theme (notebook | article | spec | book)
 source_url: https://…/demo.md    # optional "view source" link in the hero
 ---
 ```
@@ -159,6 +183,10 @@ so light/dark, code highlighting and all the building blocks work identically.
 - **`spec`** — dense reference, for APIs, algorithms, and specifications. Status
   chips in the hero (from a `badges:` list; one reading `Stable` gets a success
   tint), a wider measure, and ruled section heads for fast lookup.
+- **`book`** — reading-first, for one chapter of an interconnected book. A large
+  chapter folio, a serif long-form measure, and prev/next pagers. Comes into its
+  own built as a collection with `feynman book` (ordered chapters, per-chapter
+  numbering, cross-chapter references); usable on a standalone page too.
 
 An unrecognised `style:` falls back to `notebook` with a build warning.
 
