@@ -12,7 +12,7 @@ from dataclasses import dataclass
 import yaml
 from markdown_it import MarkdownIt
 from mdit_py_plugins.anchors import anchors_plugin
-from mdit_py_plugins.attrs import attrs_plugin
+from mdit_py_plugins.attrs import attrs_block_plugin, attrs_plugin
 from mdit_py_plugins.container import container_plugin
 from mdit_py_plugins.dollarmath import dollarmath_plugin
 from mdit_py_plugins.front_matter import front_matter_plugin
@@ -47,6 +47,11 @@ def make_md() -> MarkdownIt:
         .use(front_matter_plugin)
         .use(dollarmath_plugin, double_inline=True)
         .use(attrs_plugin)
+        # ``attrs_plugin`` is inline-only; on a table its ``{...}`` line would be
+        # swallowed as a row. ``attrs_block_plugin`` attaches a ``{.class #id}``
+        # line written *above* a block onto that block's opening token -- this is
+        # how a table opts into ``.sortable`` styling and a ``#tbl-`` id.
+        .use(attrs_block_plugin)
         .use(anchors_plugin, min_level=2, max_level=3, permalink=False)
         .use(container_plugin, VIZ_NAME, validate=_viz_validate)
         .use(container_plugin, BOX_NAME, validate=_box_validate)

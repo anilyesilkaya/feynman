@@ -88,6 +88,55 @@ def _is_executable(info: str) -> bool:
     return info.strip() == EXECUTABLE_INFO
 
 
+# Author-facing table option classes (on the ``{...}`` block-attribute line)
+# mapped to the internal class the stylesheet and runtime key off. Keeping the
+# public names short (``sortable``) while namespacing what ships (``feynman-table
+# -sortable``) avoids collisions with any generic class an author might reuse.
+_TABLE_OPTION_CLASSES = {
+    "sortable": "feynman-table-sortable",
+    "striped": "feynman-table-striped",
+    "compact": "feynman-table-compact",
+}
+
+
+def _table_open(token: Token, target: Target | None) -> str:
+    """Open a table: a ``<figure>`` wrapper, optional caption, scroll container.
+
+    A ``{#tbl-...}`` id (attached by ``attrs_block_plugin``) moves onto the
+    ``<figure>`` as the anchor and produces a numbered ``Table N`` caption, just
+    like ``:::viz`` and executed-cell figures. Recognised option classes
+    (``sortable`` / ``striped`` / ``compact``) are namespaced onto the ``<table>``
+    for the stylesheet and the sort enhancer; the default ``thead``/``tbody`` cell
+    rendering (including alignment styles) is left untouched.
+    """
+    author_classes = (token.attrGet("class") or "").split()
+    table_classes = ["feynman-table"] + [
+        _TABLE_OPTION_CLASSES[c] for c in author_classes if c in _TABLE_OPTION_CLASSES
+    ]
+    class_attr = " ".join(dict.fromkeys(table_classes))
+
+    id_attr = ""
+    caption = ""
+    if target is not None:
+        id_attr = f' id="{escape(target.label, quote=True)}"'
+        caption = (
+            '<figcaption class="feynman-table-caption">'
+            f'<span class="feynman-fig-label">{escape(target.marker)}</span>'
+            "</figcaption>"
+        )
+
+    return (
+        f'<figure class="feynman-table-figure"{id_attr}>'
+        f"{caption}"
+        '<div class="feynman-table-scroll">'
+        f'<table class="{class_attr}">'
+    )
+
+
+def _table_close() -> str:
+    return "</table></div></figure>"
+
+
 def _collect_executable_sources(tokens: list[Token]) -> list[str]:
     return [t.content for t in tokens if t.type == "fence" and _is_executable(t.info)]
 
@@ -262,6 +311,15 @@ class FeynmanRenderer(RendererHTML):
             if src is not None:
                 tokens[idx].attrSet("src", self._collector.resolve(src))
         return super().image(tokens, idx, options, env)
+
+    # --- tables ------------------------------------------------------------
+    def table_open(self, tokens, idx, options, env):
+        token = tokens[idx]
+        target = self._targets.get(token.attrGet("id") or "")
+        return _table_open(token, target)
+
+    def table_close(self, tokens, idx, options, env):
+        return _table_close()
 
 
 def _collect_viz_infos(tokens: list[Token]) -> list[str]:

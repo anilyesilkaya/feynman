@@ -38,6 +38,13 @@ browser.
   "Figure N" counter as executed charts and `:::viz` blocks via a `#fig-` id.
   Inlining (rather than an `<img>`) lets an optional `theme=auto` recolour
   ink/paper-toned strokes and fills to follow the light/dark theme.
+- **Interactive tables.** Ordinary Markdown pipe tables. A `{...}` line *above* a
+  table opts into extras: `.sortable` makes columns click-to-sort (numeric
+  columns sort by value, others by text), `.striped` / `.compact` restyle it, and
+  a `#tbl-` id gives it a "Table N" caption you reference with `@tbl-`. Column
+  alignment follows the usual `:---:` markers, with numeric columns set in
+  tabular figures; wide tables scroll with a sticky header. Sorting is
+  progressive enhancement — the static table is fully readable with no JS.
 - **Draw figures in-browser.** `feynman draw` launches the bundled
   [svg-canvas](https://github.com/anilyesilkaya/svg-canvas) editor — a
   zero-dependency SVG drawing tool — on localhost. Draw, export the SVG, and
@@ -47,7 +54,7 @@ browser.
 The look is a warm "printed notebook": paper/ink palette, serif display type,
 mono labels, a sticky table of contents, a reading-progress bar, and a pure-CSS
 light/dark theme toggle. The only JavaScript shipped drives the visualisation,
-copy buttons, table of contents, and theme.
+copy buttons, sortable tables, table of contents, and theme.
 
 ## Install
 

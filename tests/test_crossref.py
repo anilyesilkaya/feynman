@@ -48,6 +48,22 @@ def test_figures_and_viz_share_one_counter():
     assert targets["fig-c"].reference_text == "Figure 3"
 
 
+def test_table_id_numbers_on_its_own_counter():
+    # A `{#tbl-..}` block-attribute line above a pipe table joins a standalone
+    # Table counter, independent of the figures/equations counters.
+    tokens = _parse(
+        "$$e$$ (eq-x)\n\n"
+        "{#tbl-a}\n| A | B |\n|---|---|\n| 1 | 2 |\n\n"
+        "{#tbl-b}\n| C | D |\n|---|---|\n| 3 | 4 |\n"
+    )
+    targets, warnings = collect_targets(tokens)
+    assert warnings == []
+    assert targets["tbl-a"].number == 1
+    assert targets["tbl-b"].number == 2
+    assert targets["eq-x"].number == 1  # separate counter
+    assert targets["tbl-a"].reference_text == "Table 1"
+
+
 def test_document_order_is_source_order():
     # A viz declared before an equation still numbers by position in the doc.
     tokens = _parse("::: viz {type=grid #viz-first}\nc\n:::\n\n$$z$$ (eq-after)\n")

@@ -62,6 +62,7 @@ PREFIX_KINDS: dict[str, Kind] = {
     "fig": Kind("fig", "Figure", "figures"),
     "viz": Kind("viz", "Figure", "figures"),
     "lst": Kind("lst", "Listing", "listings"),
+    "tbl": Kind("tbl", "Table", "tables"),
 }
 
 
@@ -168,6 +169,12 @@ def collect_targets(tokens: list[Token]) -> tuple[dict[str, Target], list[str]]:
             # A ``:::figure`` with a ``#fig-...`` id joins the shared figures
             # counter, numbering continuously with cells and viz blocks.
             register(figures.parse_figure_params(tok.info).get("id"))
+        elif tok.type == "table_open":
+            # A ``{#tbl-...}`` block-attribute line above a pipe table (via
+            # ``attrs_block_plugin``) lands as the token's ``id``; a ``tbl-`` id
+            # joins the standalone Table counter. The renderer moves this id onto
+            # the wrapping <figure> for anchoring.
+            register(tok.attrGet("id"))
 
     return targets, warnings
 
