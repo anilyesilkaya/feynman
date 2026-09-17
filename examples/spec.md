@@ -33,6 +33,10 @@ xhat = wiener_estimate(y, H, noise_variance, regularization=1e-8)
 
 ## Parameters {#sec-params}
 
+@tbl-params lists the call arguments. Click a column header to sort — the table
+opts into that with a `{.sortable #tbl-params}` line above it.
+
+{.sortable #tbl-params}
 | Name | Type | Description |
 |------|------|-------------|
 | `y` | array_like | Observed samples. |

@@ -154,6 +154,31 @@ with the driven pictures in @sec-viz.
 @fig-sets is a static drawing, yet it shares the counter with the executed chart
 @fig-lengths and the visualisations in @sec-viz.
 
+## Interactive tables {#sec-tables}
+
+Tables stay plain Markdown — pipe-delimited rows, with column alignment coming
+from the usual `:---:` markers. Add a `{...}` line *directly above* the table to
+opt into more: `.sortable` makes every column click-to-sort, `.striped` bands the
+rows, and a `#tbl-` id gives it a caption in the shared counter, so prose can
+refer to @tbl-viz. Numeric columns (right-aligned) sort by value rather than as
+text and are set in tabular figures so their digits line up.
+
+{.sortable .striped #tbl-viz}
+| Visualisation       | Default steps | Driven by |
+|:--------------------|--------------:|:----------|
+| Box grid            |             8 | rows      |
+| Radial sweep        |            16 | spokes    |
+| Travelling wave     |            24 | fixed     |
+| Fourier synthesiser |             8 | terms     |
+| Galton board        |           120 | balls     |
+
+@tbl-viz gathers the five shapes from @sec-viz and the step count each defaults
+to. Click **Default steps** to sort by number — the counts reorder numerically,
+not lexically (so `8` sorts before `16`, and `120` lands last). Sorting is
+progressive enhancement: with JavaScript off the table is still complete and
+readable, just not reorderable, and wide tables scroll with the header staying
+in view.
+
 ## Callout boxes {#sec-box}
 
 Set a point apart with a `:::box`. One directive, three variants chosen by
@@ -199,11 +224,11 @@ dressings. An unrecognised `style:` falls back to this notebook theme.
 
 Everything on this page is linkable. Give an element a typed label — `#eq-` for
 an equation, `#fig-` for a figure, `#lst-` for a code listing, `#viz-` for a
-visualisation, `#sec-` for a heading — and write `@label` in prose to get an
-auto-numbered link to it. It works forwards and backwards: @eq-fourier sits in
-@sec-maths near the top, @lst-greet is in @sec-code, and the pictures live in
-@sec-viz. Numbers are assigned at build time in document order, so they stay
-correct as the page grows.
+visualisation, `#tbl-` for a table, `#sec-` for a heading — and write `@label` in
+prose to get an auto-numbered link to it. It works forwards and backwards:
+@eq-fourier sits in @sec-maths near the top, @lst-greet is in @sec-code, @tbl-viz
+is in @sec-tables, and the pictures live in @sec-viz. Numbers are assigned at
+build time in document order, so they stay correct as the page grows.
 
 That is the whole demo: prose and maths, code you can read, code that ran,
 pictures you can drive, and a web of cross-references tying them together — one

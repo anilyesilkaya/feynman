@@ -808,3 +808,87 @@ customElements.define("feynman-viz", FeynmanViz);
   window.addEventListener("resize", queue, { passive: true });
   update();
 })();
+
+// --- sortable tables -------------------------------------------------------
+// Progressive enhancement for tables authored with `.sortable`: click (or
+// Enter/Space on) a header to sort the tbody rows by that column, toggling
+// ascending/descending. The static table is fully readable without this; we
+// only reorder existing rows, so nothing is hidden when JS is off.
+(function initSortableTables() {
+  // A column is numeric when every non-empty cell parses as a number (commas
+  // and surrounding whitespace tolerated), so "1,000" and "30" sort by value
+  // while text columns fall back to a locale compare.
+  const parseNum = (text) => {
+    const cleaned = text.trim().replace(/,/g, "");
+    if (cleaned === "" || !/^[-+]?\d*\.?\d+(?:e[-+]?\d+)?$/i.test(cleaned)) return null;
+    return parseFloat(cleaned);
+  };
+
+  const columnIsNumeric = (rows, col) => {
+    let sawValue = false;
+    for (const row of rows) {
+      const text = (row.cells[col]?.textContent || "").trim();
+      if (text === "") continue;
+      if (parseNum(text) === null) return false;
+      sawValue = true;
+    }
+    return sawValue;
+  };
+
+  const sortBy = (table, th, col) => {
+    const tbody = table.tBodies[0];
+    if (!tbody) return;
+    const rows = Array.from(tbody.rows);
+    const numeric = columnIsNumeric(rows, col);
+    // Third click could reset, but toggling asc/desc is the common expectation;
+    // `aria-sort` on the header is the single source of truth for direction.
+    const asc = th.getAttribute("aria-sort") !== "ascending";
+
+    rows.sort((ra, rb) => {
+      const a = (ra.cells[col]?.textContent || "").trim();
+      const b = (rb.cells[col]?.textContent || "").trim();
+      let cmp;
+      if (numeric) {
+        const na = parseNum(a), nb = parseNum(b);
+        // Empty cells sort last regardless of direction.
+        if (na === null) return nb === null ? 0 : 1;
+        if (nb === null) return -1;
+        cmp = na - nb;
+      } else {
+        cmp = a.localeCompare(b, undefined, { numeric: true });
+      }
+      return asc ? cmp : -cmp;
+    });
+
+    for (const row of rows) tbody.appendChild(row);
+
+    // Reflect state: clear siblings, mark this header.
+    const headers = th.parentElement ? Array.from(th.parentElement.cells) : [];
+    for (const h of headers) h.removeAttribute("aria-sort");
+    th.setAttribute("aria-sort", asc ? "ascending" : "descending");
+  };
+
+  const enhance = (table) => {
+    const headRow = table.tHead && table.tHead.rows[0];
+    if (!headRow) return;
+    Array.from(headRow.cells).forEach((th, col) => {
+      th.classList.add("feynman-th-sortable");
+      th.setAttribute("role", "button");
+      th.tabIndex = 0;
+      const activate = () => sortBy(table, th, col);
+      th.addEventListener("click", activate);
+      th.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          activate();
+        }
+      });
+    });
+  };
+
+  const init = () => {
+    document.querySelectorAll("table.feynman-table-sortable").forEach(enhance);
+  };
+  if (document.readyState !== "loading") init();
+  else document.addEventListener("DOMContentLoaded", init);
+})();

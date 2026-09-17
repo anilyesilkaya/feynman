@@ -49,8 +49,9 @@ print(f"{trials} trials over {snr_hi - snr_lo} dB of SNR (seed 42)")
 ## Results {#sec-results}
 
 The results section favours figures and compact interpretation over
-step-by-step narration. A table states the protocol at a glance:
+step-by-step narration. @tbl-protocol states the protocol at a glance:
 
+{.sortable #tbl-protocol}
 | Setting | Value | Purpose |
 |---------|-------|---------|
 | Trials  | 1,000 | Estimate uncertainty |
