@@ -27,7 +27,7 @@ from dataclasses import dataclass, field
 from html.parser import HTMLParser
 from pathlib import Path
 
-from feynman import build, crossref, render
+from feynman import build, crossref, manifest, render
 from feynman.parse import split_front_matter
 
 # Front-matter key that keeps a post out of the build entirely.
@@ -39,6 +39,9 @@ SEARCH_INDEX_NAME = "search-index.json"
 LISTING_NAME = "index.html"
 # The book's spanning table of contents / entry page.
 CONTENTS_NAME = "contents.html"
+# Source stems whose generated page would collide with a builder's own artefact.
+# A source named e.g. ``index.md`` is reported and skipped, not silently clobbered.
+_RESERVED_STEMS = {"index", "search-index", "contents"}
 # Tags whose text content is machine data, not prose, and must not pollute the
 # search index (viz payloads ride in <script type="application/json">).
 _SKIP_TEXT_TAGS = {"script", "style"}
@@ -172,8 +175,22 @@ def build_all(
     result = SiteResult()
     posts: list[Post] = []
     css_layers: set[str] = set()
+    owned: list[Path] = []  # every file this build produces, for manifest reconcile
 
     for source in sources:
+        # A source whose stem would overwrite a generated artefact (index.html,
+        # search-index.json, contents.html) is reported and skipped, never
+        # silently clobbered by the listing written after this loop.
+        if source.stem in _RESERVED_STEMS:
+            print(
+                f"error: {source.name}: '{source.stem}' is a reserved name in a "
+                f"collection (it would overwrite the generated {source.stem} page); "
+                f"rename the file.",
+                file=sys.stderr,
+            )
+            result.skipped.append(source)
+            continue
+
         # Peek at front matter first so a draft never runs the pipeline.
         meta = split_front_matter(source.read_text(encoding="utf-8")).meta or {}
         if _is_draft(meta):
@@ -187,6 +204,7 @@ def build_all(
         out_html = out_dir / f"{source.stem}.html"
         out_html.write_text(page.html, encoding="utf-8")
         result.pages.append(out_html)
+        owned.extend([out_html, *page.media])
         css_layers.update(page.css_files)
 
         posts.append(
@@ -242,6 +260,7 @@ def build_all(
         title=title or source_dir.resolve().name or "Posts",
         tagline=tagline or "Ideas, made understandable.",
     )
+    owned.extend([result.index, result.listing])
 
     # Shared sidecar assets, written once. Include every theme layer any post
     # used, plus the MiniSearch runtime the listing page loads.
@@ -250,6 +269,12 @@ def build_all(
     (out_dir / build.SEARCH_JS).write_text(
         build._asset_text(build.SEARCH_JS), encoding="utf-8"
     )
+
+    # Reclaim stale pages/media/index from a prior build of this collection --
+    # posts newly marked draft, deleted, or renamed. Shared sidecar assets are
+    # overwritten in place and not tracked. Nested books own their own subfolder
+    # manifests. This build owns the whole flat file set at the site root.
+    manifest.reconcile(out_dir, "collection", owned)
 
     return result
 
@@ -385,6 +410,15 @@ def build_book(
     # again inside render_page, which owns its own pipeline).
     ordered: list[tuple[Path, dict, str]] = []
     for source in sources:
+        # A chapter named contents.md would overwrite the generated contents page.
+        if source.stem in _RESERVED_STEMS:
+            print(
+                f"error: {source.name}: '{source.stem}' is a reserved name in a book "
+                f"(it would overwrite the generated {source.stem} page); rename the file.",
+                file=sys.stderr,
+            )
+            result.skipped.append(source)
+            continue
         text = source.read_text(encoding="utf-8")
         meta = split_front_matter(text).meta or {}
         if _is_draft(meta):
@@ -438,6 +472,7 @@ def build_book(
 
     # Pass 2: render each chapter against the book-wide map, with prev/next nav.
     css_layers: set[str] = set()
+    owned: list[Path] = []
     for i, chapter in enumerate(chapters):
         nav = {}
         if i > 0:
@@ -458,6 +493,7 @@ def build_book(
         out_html = out_dir / chapter.url
         out_html.write_text(page.html, encoding="utf-8")
         result.pages.append(out_html)
+        owned.extend([out_html, *page.media])
         css_layers.update(page.css_files)
 
     book_title = title or _title_from_dirname(source_dir) or "Contents"
@@ -470,11 +506,16 @@ def build_book(
         tagline=tagline or "Read cover to cover.",
         home_url=home_url,
     )
+    owned.append(result.contents)
 
     # Shared sidecar assets: base CSS + every theme layer any chapter used. The
     # book theme lives in css_layers because chapters set ``style: book``.
     layers = tuple(dict.fromkeys([build.BASE_CSS, *sorted(css_layers - {build.BASE_CSS})]))
     build.write_shared_assets(out_dir, layers)
+
+    # Reclaim stale chapter pages/media from a prior build (chapters deleted,
+    # renamed, or newly drafted). Shared sidecar assets are not tracked.
+    manifest.reconcile(out_dir, "book", owned)
 
     return result
 
