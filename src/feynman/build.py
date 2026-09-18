@@ -13,7 +13,6 @@ re-implementing the pipeline, and share the runtime assets across every page.
 
 from __future__ import annotations
 
-import shutil
 import sys
 from dataclasses import dataclass
 from importlib import resources
@@ -21,7 +20,8 @@ from pathlib import Path
 
 from jinja2 import Environment, FunctionLoader
 
-from feynman.collect import MEDIA_DIR, AssetCollector
+from feynman import manifest
+from feynman.collect import AssetCollector
 from feynman.highlight import get_style_css
 from feynman.render import render_document
 from feynman.themes import BASE_CSS, resolve
@@ -68,6 +68,7 @@ class RenderedPage:
     meta: dict
     body: str
     css_files: tuple[str, ...]
+    media: tuple[Path, ...] = ()  # local images copied into out_dir/media/ (portable)
 
 
 def render_page(
@@ -159,7 +160,13 @@ def render_page(
     for ref in collector.missing:
         print(f"warning: asset not found: {ref}", file=sys.stderr)
 
-    return RenderedPage(html=html, meta=meta, body=body, css_files=css_files)
+    return RenderedPage(
+        html=html,
+        meta=meta,
+        body=body,
+        css_files=css_files,
+        media=tuple(collector.copied),
+    )
 
 
 def write_shared_assets(out_dir: Path, css_files: tuple[str, ...]) -> None:
@@ -181,10 +188,6 @@ def build_document(source: Path, out_dir: Path, *, inline: bool = False) -> Path
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    # Clear only feynman's own media dir so orphaned images from a prior build
-    # do not accumulate; never touch other files the author put in out_dir.
-    shutil.rmtree(out_dir / MEDIA_DIR, ignore_errors=True)
-
     page = render_page(source, out_dir, inline=inline)
 
     out_html = out_dir / f"{source.stem}.html"
@@ -193,7 +196,15 @@ def build_document(source: Path, out_dir: Path, *, inline: bool = False) -> Path
     # In portable mode, drop the runtime assets alongside the page. In inline
     # mode they are already embedded, and collected images are data URIs, so
     # there is nothing further to write.
+    # In inline mode nothing else lands on disk (images are data URIs), so there
+    # is no sidecar state to track or reclaim; keep the output to the one file.
     if not inline:
         write_shared_assets(out_dir, page.css_files)
+        # Reclaim only *this document's* stale output from a prior build (e.g.
+        # an image it no longer references), leaving other documents built into
+        # the same directory -- and any author files -- untouched. Shared
+        # sidecar assets are not tracked: overwritten in place, shared by docs.
+        owned = [out_html, *page.media]
+        manifest.reconcile(out_dir, f"doc:{source.stem}", owned)
 
     return out_html
