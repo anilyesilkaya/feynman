@@ -100,6 +100,18 @@ def test_article_omits_optional_chrome_when_absent(tmp_path):
     assert 'class="article-meta"' not in html
 
 
+def test_book_style_resolves_and_builds(tmp_path):
+    theme, warning = resolve("book")
+    assert theme.name == "book" and warning is None
+    src = _write(tmp_path, "title: Chapter\nstyle: book")
+    out = tmp_path / "out"
+    html = build_document(src, out).read_text(encoding="utf-8")
+    assert 'data-style="book"' in html
+    assert (out / "theme-book.css").exists()
+    # A standalone book page has no chapter number, so no folio.
+    assert "chapter-folio" not in html
+
+
 def test_spec_badges_and_stable_tint(tmp_path):
     src = _write(
         tmp_path,

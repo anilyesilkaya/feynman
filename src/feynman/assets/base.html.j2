@@ -45,10 +45,22 @@
         <span class="brand-tag">{{ tagline }}</span>
       </div>
       <nav class="header-actions" aria-label="Page navigation">
+        {%- if nav.prev %}
+        <a class="chapter-nav chapter-prev" href="{{ nav.prev.url }}" rel="prev" title="{{ nav.prev.title }}">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>
+          <span class="chapter-nav-label">Previous</span>
+        </a>
+        {%- endif %}
         {%- if home_url %}
         <a class="home-link" href="{{ home_url }}">
           <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11.5 12 4l9 7.5M5 10v9a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-9"/></svg>
           Home
+        </a>
+        {%- endif %}
+        {%- if nav.next %}
+        <a class="chapter-nav chapter-next" href="{{ nav.next.url }}" rel="next" title="{{ nav.next.title }}">
+          <span class="chapter-nav-label">Next</span>
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
         </a>
         {%- endif %}
         {%- block header_extra %}{% endblock %}
@@ -92,6 +104,22 @@
       </article>
     </div>
     {%- endblock %}
+    {%- if nav.prev or nav.next %}
+    <nav class="chapter-pager" aria-label="Chapter navigation">
+      {%- if nav.prev %}
+      <a class="pager-link pager-prev" href="{{ nav.prev.url }}" rel="prev">
+        <span class="pager-dir">← Previous</span>
+        <span class="pager-title">{{ nav.prev.title }}</span>
+      </a>
+      {%- endif %}
+      {%- if nav.next %}
+      <a class="pager-link pager-next" href="{{ nav.next.url }}" rel="next">
+        <span class="pager-dir">Next →</span>
+        <span class="pager-title">{{ nav.next.title }}</span>
+      </a>
+      {%- endif %}
+    </nav>
+    {%- endif %}
   </main>
 
   <footer class="feynman-footer">

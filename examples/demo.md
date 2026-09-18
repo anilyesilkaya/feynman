@@ -208,7 +208,7 @@ text may contain spaces.
 This page uses the default **notebook** theme. A theme sets the page layout and
 typography — chosen with a `style:` key in the front matter — while sharing the
 same tokens, so light/dark, code highlighting and every building block above
-work identically across all of them. Two more ship built in:
+work identically across all of them. Three more ship built in:
 
 - **[Research article](article.html)** (`style: article`) — paper-first, with an
   author/date/version meta row, an abstract, and numbered sections in a narrower
@@ -216,8 +216,13 @@ work identically across all of them. Two more ship built in:
 - **[Reference / specification](spec.html)** (`style: spec`) — dense and
   scannable, with status chips in the hero, a wider measure, and ruled section
   heads. Built for APIs, algorithms, and software documentation.
+- **[Book](book/contents.html)** (`style: book`) — a reading-first, long-form
+  treatment for ordered, interconnected chapters: a large chapter folio, a serif
+  measure, prev/next pagers, and a spanning table of contents. It pairs with the
+  `feynman book` builder (see [below](#sec-search)), which numbers *per chapter*
+  ("Figure 3.2") and resolves cross-references across files.
 
-Each links back here, so you can compare the same engine in three different
+Each links back here, so you can compare the same engine in four different
 dressings. An unrecognised `style:` falls back to this notebook theme.
 
 ## Search across the collection {#sec-search}
@@ -235,6 +240,15 @@ first use, with prefix and typo-tolerant matching — so *mathmatics* still find
 this page. With JavaScript off the listing degrades to a plain set of links, so
 the collection stays navigable either way. A post marked `draft: true` in its
 front matter is left out of both the pages and the index.
+
+Where `build-all` makes a *flat, search-first* collection, `feynman book
+<folder>` builds the same kind of folder into an *ordered, interconnected* one:
+chapters read in an authored sequence (set by an `order:` key), each carries
+prev/next pagers, and — the part a single page cannot do — cross-references
+resolve *across files* and number *per chapter*, so `@fig-bars` in chapter 3
+renders "Figure 3.2" and links straight into `chapter-3.html`. A spanning
+[table of contents](book/contents.html) is the entry point. The three-chapter
+[example book](book/contents.html) beside this demo is built exactly that way.
 
 ## Cross-references {#sec-xref}
 

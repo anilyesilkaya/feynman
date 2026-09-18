@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from feynman.crossref import collect_targets, dangling_ref_warnings
+from feynman.crossref import collect_targets, dangling_ref_warnings, render_xref
 from feynman.parse import make_md
 
 
@@ -120,3 +120,35 @@ def test_section_label_overrides_autoslug():
     assert heading.attrGet("id") == "sec-intro"
     inline = next(t for t in tokens if t.type == "inline")
     assert inline.content == "A Long Heading"
+
+
+# --- book (chapter-aware) numbering ----------------------------------------
+def test_chapter_numbering_reads_per_chapter():
+    # With a chapter, numbering is "3.2": chapter number, then the local count.
+    tokens = _parse("$$a$$ (eq-one)\n\n$$b$$ (eq-two)\n")
+    targets, _ = collect_targets(tokens, chapter=3, chapter_url="ch3.html")
+    assert targets["eq-two"].number == 2
+    assert targets["eq-two"].reference_text == "Equation 3.2"
+    assert targets["eq-two"].marker == "(3.2)"
+    assert targets["eq-two"].chapter == 3
+    assert targets["eq-two"].chapter_url == "ch3.html"
+
+
+def test_no_chapter_is_flat_numbering():
+    # The default (standalone) path is unchanged: a bare "Equation 1" / "(1)".
+    tokens = _parse("$$a$$ (eq-one)\n")
+    targets, _ = collect_targets(tokens)
+    assert targets["eq-one"].reference_text == "Equation 1"
+    assert targets["eq-one"].marker == "(1)"
+
+
+def test_render_xref_cross_file_gets_url_prefix():
+    tokens = _parse("$$a$$ (eq-one)\n")
+    targets, _ = collect_targets(tokens, chapter=1, chapter_url="ch1.html")
+    target = targets["eq-one"]
+    # Rendered from a *different* page -> href carries the owning page's URL.
+    from_other = render_xref(target, "eq-one", current_url="ch2.html")
+    assert 'href="ch1.html#eq-one"' in from_other
+    # Rendered from the *same* page -> bare anchor, no filename prefix.
+    from_same = render_xref(target, "eq-one", current_url="ch1.html")
+    assert 'href="#eq-one"' in from_same

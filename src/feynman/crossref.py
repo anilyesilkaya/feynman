@@ -68,16 +68,35 @@ PREFIX_KINDS: dict[str, Kind] = {
 
 @dataclass(frozen=True)
 class Target:
-    """A labelled, numbered element that references can point at."""
+    """A labelled, numbered element that references can point at.
+
+    In a single document ``chapter`` is ``None`` and numbering is a plain
+    running count ("Figure 1"). In a *book* build the multi-document builder
+    stamps each target with its owning chapter's number and page URL, so
+    numbering reads per-chapter ("Figure 3.2") and a reference from another
+    chapter can resolve to ``chapter-3.html#fig-bars`` instead of a bare anchor.
+    """
 
     label: str  # the full id, e.g. "fig-bars"; also the anchor
     kind: Kind
     number: int
+    #: The owning chapter's number in a book build, or ``None`` standalone.
+    chapter: int | None = None
+    #: The page URL the target lives on, for cross-file references ("" = same
+    #: page, so the reference stays a bare ``#anchor``).
+    chapter_url: str = ""
+
+    @property
+    def _number_text(self) -> str:
+        """The bare number a reference/marker shows: ``2`` or ``3.2`` in a book."""
+        if self.chapter is None:
+            return str(self.number)
+        return f"{self.chapter}.{self.number}"
 
     @property
     def reference_text(self) -> str:
-        """How a reference to this target reads, e.g. ``Figure 1``."""
-        return f"{self.kind.word} {self.number}"
+        """How a reference to this target reads, e.g. ``Figure 1`` / ``Figure 3.2``."""
+        return f"{self.kind.word} {self._number_text}"
 
     @property
     def marker(self) -> str:
@@ -88,10 +107,10 @@ class Target:
         its own label and the sidebar already numbers it.
         """
         if self.kind.prefix == "eq":
-            return f"({self.number})"
+            return f"({self._number_text})"
         if self.kind.prefix == "sec":
             return ""
-        return f"{self.kind.word} {self.number}"
+        return f"{self.kind.word} {self._number_text}"
 
 
 def _prefix_of(label: str) -> str:
@@ -120,13 +139,21 @@ def parse_cell_label(source: str) -> str | None:
     return None
 
 
-def collect_targets(tokens: list[Token]) -> tuple[dict[str, Target], list[str]]:
+def collect_targets(
+    tokens: list[Token], *, chapter: int | None = None, chapter_url: str = ""
+) -> tuple[dict[str, Target], list[str]]:
     """Number every labelled element in document order.
 
     Returns the label -> :class:`Target` map plus a list of human-readable
     warnings (unknown prefix, duplicate label) for the caller to surface. Runs
     *after* :func:`section_id_rule`, so ``heading_open`` tokens already carry
     their explicit ``sec-`` ids.
+
+    ``chapter`` / ``chapter_url`` are set by the book builder so a chapter's
+    targets number per-chapter ("Figure 3.2") and carry the page URL a
+    cross-chapter reference resolves against. Standalone builds pass neither,
+    reproducing the flat "Figure 1" numbering. Counters are local to this call,
+    so each chapter restarts its figures/equations/... at 1.
     """
     targets: dict[str, Target] = {}
     warnings: list[str] = []
@@ -147,7 +174,7 @@ def collect_targets(tokens: list[Token]) -> tuple[dict[str, Target], list[str]]:
             return
         number = counters.get(kind.counter, 0) + 1
         counters[kind.counter] = number
-        targets[label] = Target(label, kind, number)
+        targets[label] = Target(label, kind, number, chapter, chapter_url)
 
     for tok in tokens:
         if tok.type == "math_block_label":
@@ -255,11 +282,18 @@ def section_id_rule(state) -> None:
         token.attrSet("id", match.group(1))
 
 
-def render_xref(target: Target | None, label: str) -> str:
-    """Render one reference: a link when resolved, marked raw text when not."""
+def render_xref(target: Target | None, label: str, current_url: str = "") -> str:
+    """Render one reference: a link when resolved, marked raw text when not.
+
+    ``current_url`` is the URL of the page being rendered. When the target lives
+    on a *different* page (a cross-chapter reference in a book), the href is
+    prefixed with that page's URL; a same-page target stays a bare ``#anchor``.
+    """
     if target is None:
         return f'<span class="feynman-xref feynman-xref-broken">@{escape(label)}</span>'
+    prefix = target.chapter_url if target.chapter_url != current_url else ""
+    href = f"{prefix}#{escape(target.label, quote=True)}"
     return (
-        f'<a class="feynman-xref" href="#{escape(target.label, quote=True)}">'
+        f'<a class="feynman-xref" href="{escape(href, quote=True)}">'
         f"{escape(target.reference_text)}</a>"
     )

@@ -55,6 +55,12 @@ THEMES: dict[str, Theme] = {
         styles=("theme-spec.css",),
         defaults={"kicker": "Reference / specification", "tagline": "Technical reference"},
     ),
+    "book": Theme(
+        name="book",
+        template="book.html.j2",
+        styles=("theme-book.css",),
+        defaults={"kicker": "A chapter", "tagline": "Read cover to cover."},
+    ),
 }
 
 #: The theme used when ``style:`` is absent or unrecognised. Reproduces the

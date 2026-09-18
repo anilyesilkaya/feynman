@@ -1,0 +1,32 @@
+{% extends "base.html.j2" -%}
+{# Book contents -- the entry page for a book built with `feynman book`. Lists
+   every chapter in reading order as links; it is the "Home" each chapter's
+   header returns to. Fully static (no JavaScript needed to navigate). #}
+
+{% block footer_note %}Read cover to cover.{% endblock %}
+
+{% block hero %}
+<div class="feynman-hero book-contents-hero">
+  <p class="eyebrow hero-kicker">{{ kicker }}</p>
+  <h1 class="feynman-title">{{ hero_title }}</h1>
+  <p class="feynman-subtitle">{{ chapters | length }} chapter{{ '' if chapters | length == 1 else 's' }}.</p>
+</div>
+{% endblock %}
+
+{% block layout %}
+<div class="book-contents" id="notebook">
+  <ol class="chapter-list">
+    {%- for chapter in chapters %}
+    <li class="chapter-item">
+      <a class="chapter-link" href="{{ chapter.url }}">
+        <span class="chapter-num">{{ '%02d' | format(chapter.number) }}</span>
+        <span class="chapter-text">
+          <span class="chapter-title">{{ chapter.title }}</span>
+          {%- if chapter.subtitle %}<span class="chapter-sub">{{ chapter.subtitle }}</span>{% endif %}
+        </span>
+      </a>
+    </li>
+    {%- endfor %}
+  </ol>
+</div>
+{% endblock %}

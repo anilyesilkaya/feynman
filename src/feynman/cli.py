@@ -8,7 +8,7 @@ from pathlib import Path
 
 from feynman import __version__
 from feynman.build import build_document
-from feynman.collection import build_all
+from feynman.collection import build_all, build_book
 from feynman.editor import DEFAULT_PORT, EditorUnavailableError, serve_editor
 from feynman.scaffold import init_document
 
@@ -64,6 +64,33 @@ def main(argv: list[str] | None = None) -> int:
         "--tagline",
         default="",
         help="Header tagline for the listing page.",
+    )
+
+    book_parser = sub.add_parser(
+        "book",
+        help="Build a folder of .md chapters into an ordered, interconnected book.",
+    )
+    book_parser.add_argument(
+        "source_dir",
+        type=Path,
+        help="Directory of .md chapters to build (non-recursive).",
+    )
+    book_parser.add_argument(
+        "-o",
+        "--out",
+        type=Path,
+        default=Path("_site"),
+        help="Output directory (default: ./_site).",
+    )
+    book_parser.add_argument(
+        "--title",
+        default="",
+        help="Title of the contents page (default: the folder name).",
+    )
+    book_parser.add_argument(
+        "--tagline",
+        default="",
+        help="Header tagline for the book.",
     )
 
     init = sub.add_parser(
@@ -128,6 +155,22 @@ def main(argv: list[str] | None = None) -> int:
         if result.skipped:
             print(f"skipped {len(result.skipped)} draft(s)")
         print(f"search page: {result.listing}")
+        return 0
+
+    if args.command == "book":
+        if not args.source_dir.is_dir():
+            print(f"error: no such directory: {args.source_dir}", file=sys.stderr)
+            return 2
+        result = build_book(
+            args.source_dir, args.out, title=args.title, tagline=args.tagline
+        )
+        if not result.pages:
+            print(f"error: no chapters built from {args.source_dir}", file=sys.stderr)
+            return 2
+        print(f"built {len(result.pages)} chapter(s) -> {args.out}")
+        if result.skipped:
+            print(f"skipped {len(result.skipped)} draft(s)")
+        print(f"contents page: {result.contents}")
         return 0
 
     if args.command == "init":

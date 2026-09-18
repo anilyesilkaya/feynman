@@ -1,0 +1,42 @@
+{% extends "base.html.j2" -%}
+{# Book chapter -- one document in an ordered, interconnected collection built
+   with `feynman book`. A large chapter folio ("Chapter 3") leads the hero;
+   prev/next links (from `nav`) and the pager block are rendered by base.html.j2.
+   `chapter` is the chapter number (set by the book builder); a standalone page
+   built with `style: book` simply omits the folio. #}
+
+{% block footer_note %}Read cover to cover.{% endblock %}
+
+{% block hero %}
+<header class="book-hero">
+  {%- if chapter %}
+  <p class="chapter-folio">Chapter {{ chapter }}</p>
+  {%- else %}
+  <p class="eyebrow hero-kicker">{{ kicker }}</p>
+  {%- endif %}
+  <h1 class="feynman-title">{{ hero_title }}</h1>
+  {%- if subtitle %}
+  <p class="feynman-subtitle">{{ subtitle }}</p>
+  {%- endif %}
+  {%- if authors or date %}
+  <div class="book-meta">
+    {%- if authors %}<span>{{ authors }}</span>{% endif %}
+    {%- if date %}<span>{{ date }}</span>{% endif %}
+  </div>
+  {%- endif %}
+</header>
+{% endblock %}
+
+{% block layout %}
+<div class="book-layout" id="notebook">
+  <aside class="contents js-only" aria-hidden="true">
+    <nav aria-label="In this chapter">
+      <h2 class="eyebrow">In this chapter</h2>
+      <ol></ol>
+    </nav>
+  </aside>
+  <article class="feynman-prose book-prose">
+    {{ body }}
+  </article>
+</div>
+{% endblock %}

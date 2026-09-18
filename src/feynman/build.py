@@ -71,7 +71,15 @@ class RenderedPage:
 
 
 def render_page(
-    source: Path, out_dir: Path, *, inline: bool = False, home_url: str | None = None
+    source: Path,
+    out_dir: Path,
+    *,
+    inline: bool = False,
+    home_url: str | None = None,
+    targets: dict | None = None,
+    current_url: str = "",
+    nav: dict | None = None,
+    chapter: int | None = None,
 ) -> RenderedPage:
     """Run the pipeline for one ``source`` and return its :class:`RenderedPage`.
 
@@ -83,10 +91,17 @@ def render_page(
     ``home_url`` adds a "Home" link to the header pointing at it; ``None`` (the
     default) omits the link, so a standalone page keeps its original chrome. The
     multi-document builder passes the listing page so each post can return to it.
+
+    ``targets`` / ``current_url`` are forwarded to :func:`render_document` for a
+    book build (a book-wide cross-reference map and this page's URL). ``nav`` is
+    an optional ``{"prev": {...}, "next": {...}}`` mapping of adjacent chapters,
+    each ``{"url", "title"}``; the page template renders prev/next links from it.
     """
     text = source.read_text(encoding="utf-8")
     collector = AssetCollector(source.parent, out_dir, inline=inline)
-    doc, body = render_document(text, collector=collector)
+    doc, body = render_document(
+        text, collector=collector, targets=targets, current_url=current_url
+    )
 
     meta = doc.meta or {}
     theme, style_warning = resolve(meta.get("style"))
@@ -137,6 +152,8 @@ def render_page(
         inline=inline,
         assets=assets,
         home_url=home_url,
+        nav=nav or {},
+        chapter=chapter,
     )
 
     for ref in collector.missing:
