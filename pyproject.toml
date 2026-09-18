@@ -15,15 +15,21 @@ dependencies = [
     "latex2mathml>=3.77",
     "pygments>=2.17",
     "jinja2>=3.1",
-    "nbclient>=0.9",
-    "nbformat>=5.9",
-    "ipykernel>=6.29",
     "pyyaml>=6",
 ]
 
 [project.optional-dependencies]
-# Used by example documents, not by the core generator.
-demo = ["matplotlib>=3.8"]
+# Executing {python} cells: the Jupyter backend, needed only for documents that
+# run code. Ordinary Markdown builds do not require it (feynman.execute imports
+# it lazily and raises an actionable error if a cell needs it but it is absent).
+exec = [
+    "nbclient>=0.9",
+    "nbformat>=5.9",
+    "ipykernel>=6.29",
+]
+# Everything the bundled example document needs: it runs {python} cells (so it
+# needs the exec backend) and plots with matplotlib.
+demo = ["feynman[exec]", "matplotlib>=3.8"]
 dev = ["pytest>=8"]
 
 [project.scripts]

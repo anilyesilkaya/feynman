@@ -61,9 +61,15 @@ copy buttons, sortable tables, table of contents, and theme.
 Requires Python 3.10+.
 
 ```bash
-pip install .            # the generator
-pip install ".[demo]"    # + matplotlib, for the example document
+pip install .            # the generator (Markdown, math, highlighting, viz)
+pip install ".[exec]"    # + the Jupyter backend, to run {python} code cells
+pip install ".[demo]"    # + exec and matplotlib, for the example document
 ```
+
+Executing `{python}` cells needs the optional `exec` backend; an ordinary
+Markdown build (prose, math, figures, viz) does not. A document with code cells
+built without it fails with an actionable install hint rather than silently
+skipping the code.
 
 `feynman draw` also needs the bundled editor submodule — see
 [Development](#development).
