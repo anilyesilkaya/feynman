@@ -61,9 +61,15 @@ copy buttons, sortable tables, table of contents, and theme.
 Requires Python 3.10+.
 
 ```bash
-pip install .            # the generator
-pip install ".[demo]"    # + matplotlib, for the example document
+pip install .            # the generator (Markdown, math, highlighting, viz)
+pip install ".[exec]"    # + the Jupyter backend, to run {python} code cells
+pip install ".[demo]"    # + exec and matplotlib, for the example document
 ```
+
+Executing `{python}` cells needs the optional `exec` backend; an ordinary
+Markdown build (prose, math, figures, viz) does not. A document with code cells
+built without it fails with an actionable install hint rather than silently
+skipping the code.
 
 `feynman draw` also needs the bundled editor submodule — see
 [Development](#development).
@@ -102,6 +108,27 @@ feynman build examples/demo.md -o _site --inline
 ```
 
 That writes just `_site/demo.html` with nothing beside it.
+
+### Strict builds
+
+By default a build warns about problems (invalid front matter, a missing asset, a
+duplicate label, a dangling `@ref`, an unexpected cell traceback) and continues.
+Pass `--strict` — on `build`, `build-all` or `book` — to make any such diagnostic
+fatal, so CI fails instead of publishing a broken page:
+
+```bash
+feynman build my-post.md --strict
+```
+
+A cell that raises on purpose (a tutorial demonstrating an error) opts out with a
+cell option so `--strict` does not fail on it:
+
+````markdown
+```{python}
+#| allow-error: true
+1 / 0
+```
+````
 
 ### Building a searchable collection
 
