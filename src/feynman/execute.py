@@ -7,6 +7,12 @@ pandas), inline SVG/PNG images (e.g. matplotlib) and stream output -- and render
 each to HTML that gets baked into the page.
 
 Nothing here runs in the reader's browser; this is a build step.
+
+The execution backend (nbclient / nbformat / ipykernel) is an *optional* extra:
+``pip install "feynman[exec]"``. This module imports cleanly without it -- the
+Jupyter imports are deferred into :func:`execute_cells`, which raises an
+actionable :class:`ExecutionUnavailableError` if a document has ``{python}``
+cells but the backend is not installed. Ordinary Markdown builds never touch it.
 """
 
 from __future__ import annotations
@@ -16,12 +22,13 @@ import warnings
 from dataclasses import dataclass, field
 from html import escape
 
-import nbformat
-from nbclient import NotebookClient
-
 # On Windows the Proactor event loop emits a benign zmq RuntimeWarning on kernel
 # startup; it is noise for a build tool.
 warnings.filterwarnings("ignore", message="Proactor event loop")
+
+
+class ExecutionUnavailableError(RuntimeError):
+    """Raised when a document needs cell execution but the backend is missing."""
 
 # Prepended to every document's notebook. Forces matplotlib (if the document
 # uses it) to emit crisp, themeable inline SVG rather than raster PNG, matching
@@ -135,6 +142,17 @@ def execute_cells(sources: list[str], *, timeout: int = 60) -> list[CellResult]:
     """
     if not sources:
         return []
+
+    # Import the Jupyter backend lazily: it is an optional extra, so a build
+    # only requires it once a document actually has a {python} cell to run.
+    try:
+        import nbformat
+        from nbclient import NotebookClient
+    except ImportError as exc:
+        raise ExecutionUnavailableError(
+            "this document has {python} cells, but the execution backend is not "
+            'installed. Install it with:  pip install "feynman[exec]"'
+        ) from exc
 
     nb = nbformat.v4.new_notebook()
     nb.cells.append(nbformat.v4.new_code_cell(_SETUP_SOURCE))
