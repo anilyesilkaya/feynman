@@ -103,6 +103,27 @@ feynman build examples/demo.md -o _site --inline
 
 That writes just `_site/demo.html` with nothing beside it.
 
+### Strict builds
+
+By default a build warns about problems (invalid front matter, a missing asset, a
+duplicate label, a dangling `@ref`, an unexpected cell traceback) and continues.
+Pass `--strict` — on `build`, `build-all` or `book` — to make any such diagnostic
+fatal, so CI fails instead of publishing a broken page:
+
+```bash
+feynman build my-post.md --strict
+```
+
+A cell that raises on purpose (a tutorial demonstrating an error) opts out with a
+cell option so `--strict` does not fail on it:
+
+````markdown
+```{python}
+#| allow-error: true
+1 / 0
+```
+````
+
 ### Building a searchable collection
 
 `build` compiles one document; `build-all` compiles a *folder* of them into a

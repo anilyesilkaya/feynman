@@ -14,13 +14,13 @@ re-implementing the pipeline, and share the runtime assets across every page.
 from __future__ import annotations
 
 import shutil
-import sys
 from dataclasses import dataclass
 from importlib import resources
 from pathlib import Path
 
 from jinja2 import Environment, FunctionLoader
 
+from feynman import diagnostics
 from feynman.collect import MEDIA_DIR, AssetCollector
 from feynman.highlight import get_style_css
 from feynman.render import render_document
@@ -100,13 +100,17 @@ def render_page(
     text = source.read_text(encoding="utf-8")
     collector = AssetCollector(source.parent, out_dir, inline=inline)
     doc, body = render_document(
-        text, collector=collector, targets=targets, current_url=current_url
+        text,
+        collector=collector,
+        targets=targets,
+        current_url=current_url,
+        source=str(source),
     )
 
     meta = doc.meta or {}
     theme, style_warning = resolve(meta.get("style"))
     if style_warning:
-        print(f"warning: {style_warning}", file=sys.stderr)
+        diagnostics.warn(style_warning, source=str(source))
 
     # The base stylesheet first, then any theme layers, so a layer only overrides
     # what it needs. Emitted in this order into the page.
@@ -157,7 +161,7 @@ def render_page(
     )
 
     for ref in collector.missing:
-        print(f"warning: asset not found: {ref}", file=sys.stderr)
+        diagnostics.warn(f"asset not found: {ref}", source=str(source))
 
     return RenderedPage(html=html, meta=meta, body=body, css_files=css_files)
 

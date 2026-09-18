@@ -16,14 +16,12 @@ only stitches their captured output into the page in document order.
 
 from __future__ import annotations
 
-import sys
-
 from markdown_it.renderer import RendererHTML
 from markdown_it.token import Token
 
 from html import escape
 
-from feynman import boxes, crossref, directives, figures
+from feynman import boxes, crossref, diagnostics, directives, figures
 from feynman.collect import AssetCollector
 from feynman.crossref import Target
 from feynman.execute import CellResult, execute_cells
@@ -144,11 +142,12 @@ def _collect_executable_sources(tokens: list[Token]) -> list[str]:
 def _cell_options(source: str) -> tuple[dict, str]:
     """Split leading ``#| key: value`` option lines from a cell's source.
 
-    Two boolean options are understood: ``echo`` (show the source, default true)
-    and ``output`` (show the captured output, default true). ``label`` sets a
-    stable ``id`` on the cell for linking. Unknown options are ignored but still
-    stripped from the displayed source. ``label`` is reserved for future use of
-    the value beyond the element id.
+    Boolean options understood: ``echo`` (show the source, default true),
+    ``output`` (show the captured output, default true), and ``allow-error``
+    (default false) which marks a raising cell as intentional so ``--strict``
+    does not fail on its traceback. ``label`` sets a stable ``id`` on the cell
+    for linking. Unknown options are ignored but still stripped from the
+    displayed source.
     """
     opts: dict = {}
     lines = source.splitlines()
@@ -338,14 +337,15 @@ def _collect_figure_infos(tokens: list[Token]) -> list[str]:
     return [t.info for t in tokens if t.type == "container_figure_open"]
 
 
-def parse_document(text: str):
+def parse_document(text: str, *, source: str | None = None):
     """Split front matter and parse the body to a token stream.
 
     Returns ``(doc, md, tokens)``. Factored out so the book builder can run the
     cross-reference pre-pass over a chapter's tokens (to number targets before
-    any page is rendered) without duplicating the parse setup.
+    any page is rendered) without duplicating the parse setup. ``source`` is the
+    document path, attached to a front-matter diagnostic if the YAML is invalid.
     """
-    doc = split_front_matter(text)
+    doc = split_front_matter(text, source=source)
     md = make_md()
     tokens = md.parse(doc.body)
     return doc, md, tokens
@@ -357,6 +357,7 @@ def render_document(
     collector: AssetCollector | None = None,
     targets: dict[str, Target] | None = None,
     current_url: str = "",
+    source: str | None = None,
 ) -> tuple[Document, str]:
     """Parse and render a document; return metadata and HTML body.
 
@@ -370,29 +371,32 @@ def render_document(
     builder owns those, since a reference may legitimately resolve to a target in
     a different file. ``current_url`` is this page's URL, used to keep same-page
     references bare while cross-chapter ones gain a ``chapter.html`` prefix.
+
+    ``source`` is the document's path, attached to any diagnostic emitted here so
+    a reader can find the offending file.
     """
-    doc, md, tokens = parse_document(text)
+    doc, md, tokens = parse_document(text, source=source)
 
     # Warn once, at build time, about any viz directive naming an unknown type
     # (the reader would silently fall back to the grid renderer otherwise).
     for info in _collect_viz_infos(tokens):
         warning = directives.validate_viz(directives.parse_params(info))
         if warning:
-            print(f"warning: {warning}", file=sys.stderr)
+            diagnostics.warn(warning, source=source)
 
     # Likewise warn about a callout box naming an unknown variant (the reader
     # would silently get the info style otherwise).
     for info in _collect_box_infos(tokens):
         warning = boxes.validate_box(boxes.parse_box_params(info))
         if warning:
-            print(f"warning: {warning}", file=sys.stderr)
+            diagnostics.warn(warning, source=source)
 
     # Warn about a figure directive with no src or an unknown theme (a missing
     # file is caught later, at render time, where the filesystem is in reach).
     for info in _collect_figure_infos(tokens):
         warning = figures.validate_figure(figures.parse_figure_params(info))
         if warning:
-            print(f"warning: {warning}", file=sys.stderr)
+            diagnostics.warn(warning, source=source)
 
     # Cross-reference pre-pass: number every labelled element before rendering
     # so a reference can point forward to a target not yet emitted. Warn about
@@ -403,12 +407,24 @@ def render_document(
     if targets is None:
         targets, label_warnings = crossref.collect_targets(tokens)
         for warning in label_warnings + crossref.dangling_ref_warnings(tokens, targets):
-            print(f"warning: {warning}", file=sys.stderr)
+            diagnostics.warn(warning, source=source)
 
     # Strip option lines before execution so ``#|`` directives never run.
     sources = _collect_executable_sources(tokens)
+    cell_opts = [_cell_options(s)[0] for s in sources]
     exec_sources = [_cell_options(s)[1] for s in sources]
     cell_results = execute_cells(exec_sources)
+
+    # A cell that raised is captured (its traceback is baked into the page), but
+    # an *unexpected* traceback is a build problem: report it so ``--strict`` can
+    # fail. A tutorial that means to demonstrate a failure opts in with
+    # ``#| allow-error: true`` and is not reported.
+    for opts, result in zip(cell_opts, cell_results):
+        if result.error and not opts.get("allow-error", False):
+            diagnostics.warn(
+                f"cell raised {result.error} (add '#| allow-error: true' if intended)",
+                source=source,
+            )
 
     md.renderer = FeynmanRenderer(
         cell_results, collector=collector, targets=targets, current_url=current_url

@@ -27,7 +27,7 @@ from dataclasses import dataclass, field
 from html.parser import HTMLParser
 from pathlib import Path
 
-from feynman import build, crossref, render
+from feynman import build, crossref, diagnostics, render
 from feynman.parse import split_front_matter
 
 # Front-matter key that keeps a post out of the build entirely.
@@ -135,7 +135,7 @@ def _discover_sources(source_dir: Path, out_dir: Path) -> list[Path]:
     out_dir.mkdir(parents=True, exist_ok=True)
     sources = sorted(p for p in source_dir.glob("*.md") if p.is_file())
     if not sources:
-        print(f"warning: no .md files found in {source_dir}", file=sys.stderr)
+        diagnostics.warn(f"no .md files found in {source_dir}")
     return sources
 
 
@@ -411,20 +411,20 @@ def build_book(
     book_targets: dict[str, crossref.Target] = {}
     chapter_tokens: list[tuple[Chapter, list]] = []
     for chapter, (_src, _meta, text) in zip(chapters, ordered):
-        _, _, tokens = render.parse_document(text)
+        _, _, tokens = render.parse_document(text, source=str(chapter.source))
         chapter_tokens.append((chapter, tokens))
         targets, warnings = crossref.collect_targets(
             tokens, chapter=chapter.number, chapter_url=chapter.url
         )
         for warning in warnings:
-            print(f"warning: {chapter.source.name}: {warning}", file=sys.stderr)
+            diagnostics.warn(warning, source=str(chapter.source))
         for label, target in targets.items():
             if label in book_targets:
                 owner = book_targets[label].chapter_url
-                print(
-                    f"warning: duplicate cross-reference label {label!r} in "
+                diagnostics.warn(
+                    f"duplicate cross-reference label {label!r} in "
                     f"{chapter.url} (already defined in {owner}); first wins.",
-                    file=sys.stderr,
+                    source=str(chapter.source),
                 )
                 continue
             book_targets[label] = target
@@ -434,7 +434,7 @@ def build_book(
     # own per-document check when a book map is supplied).
     for chapter, tokens in chapter_tokens:
         for warning in crossref.dangling_ref_warnings(tokens, book_targets):
-            print(f"warning: {chapter.source.name}: {warning}", file=sys.stderr)
+            diagnostics.warn(warning, source=str(chapter.source))
 
     # Pass 2: render each chapter against the book-wide map, with prev/next nav.
     css_layers: set[str] = set()

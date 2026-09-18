@@ -17,7 +17,7 @@ from mdit_py_plugins.container import container_plugin
 from mdit_py_plugins.dollarmath import dollarmath_plugin
 from mdit_py_plugins.front_matter import front_matter_plugin
 
-from feynman import crossref
+from feynman import crossref, diagnostics
 
 VIZ_NAME = "viz"
 BOX_NAME = "box"
@@ -73,12 +73,15 @@ class Document:
     body: str
 
 
-def split_front_matter(text: str) -> Document:
+def split_front_matter(text: str, *, source: str | None = None) -> Document:
     """Split leading ``---`` YAML front matter from the Markdown body.
 
     The ``front_matter`` plugin recognises the block during rendering, but we
     also need the metadata (title, theme, ...) as a dict up front, so we parse
-    and strip it here.
+    and strip it here. Invalid YAML, or front matter that is not a mapping, is
+    reported as a diagnostic (rather than silently swallowed) and treated as
+    empty metadata so the build still produces a page. ``source`` is the document
+    path, attached to the diagnostic.
     """
     if text.startswith("---"):
         end = text.find("\n---", 3)
@@ -89,8 +92,21 @@ def split_front_matter(text: str) -> Document:
                 rest = rest[1:]
             try:
                 meta = yaml.safe_load(raw) or {}
-            except yaml.YAMLError:
+            except yaml.YAMLError as exc:
+                # Surface the YAML parser's own line/column if it carries one.
+                mark = getattr(exc, "problem_mark", None)
+                line = mark.line + 1 if mark is not None else None
+                diagnostics.warn(
+                    f"invalid YAML front matter: {getattr(exc, 'problem', exc)}",
+                    source=source,
+                    line=line,
+                )
                 meta = {}
             if isinstance(meta, dict):
                 return Document(meta=meta, body=rest)
+            diagnostics.warn(
+                f"front matter must be a mapping, got {type(meta).__name__}; ignoring it.",
+                source=source,
+            )
+            return Document(meta={}, body=rest)
     return Document(meta={}, body=text)
