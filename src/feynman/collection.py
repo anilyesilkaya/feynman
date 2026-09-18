@@ -115,6 +115,7 @@ class SiteResult:
     index: Path | None = None
     listing: Path | None = None
     skipped: list[Path] = field(default_factory=list)  # drafts
+    books: list[Path] = field(default_factory=list)  # contents pages of built books
 
 
 def _is_draft(meta: dict) -> bool:
@@ -136,6 +137,22 @@ def _discover_sources(source_dir: Path, out_dir: Path) -> list[Path]:
     if not sources:
         print(f"warning: no .md files found in {source_dir}", file=sys.stderr)
     return sources
+
+
+def _discover_books(source_dir: Path) -> list[Path]:
+    """Return sub-directories of ``source_dir`` that hold ``*.md`` chapters.
+
+    A collection folder can contain *books*: a subfolder of chapter files that
+    :func:`build_all` builds as an interconnected book (into ``out/<name>/``) and
+    surfaces as one card on the listing. Any immediate subdirectory with at least
+    one top-level ``*.md`` qualifies; asset folders (``media``, ``figures``, a
+    nested ``_site``) hold no Markdown and are skipped naturally.
+    """
+    return sorted(
+        d
+        for d in source_dir.iterdir()
+        if d.is_dir() and any(d.glob("*.md"))
+    )
 
 
 def build_all(
@@ -181,6 +198,28 @@ def build_all(
                 authors=_as_text(page.meta.get("authors")),
                 keywords=_as_text(page.meta.get("keywords")),
                 text=html_to_text(page.body),
+            )
+        )
+
+    # Books: each subfolder of chapters becomes its own interconnected book under
+    # out/<name>/ and one card on this listing linking to its contents page. A
+    # book carries no date, so it lists among the undated entries. Its card text
+    # is the chapter titles/subtitles, so a search for a chapter name finds it.
+    for book_dir in _discover_books(source_dir):
+        book = build_book(book_dir, out_dir / book_dir.name)
+        if not book.pages:
+            continue  # empty subfolder: build_book already warned
+        result.books.append(book.contents)
+        chapter_text = " ".join(
+            f"{c.title} {c.subtitle}".strip() for c in book.chapters
+        )
+        posts.append(
+            Post(
+                url=f"{book_dir.name}/{CONTENTS_NAME}",
+                title=book.title,
+                subtitle=f"A {len(book.chapters)}-chapter book.",
+                keywords="book",
+                text=chapter_text,
             )
         )
 
@@ -283,6 +322,13 @@ class BookResult:
     pages: list[Path] = field(default_factory=list)
     contents: Path | None = None
     skipped: list[Path] = field(default_factory=list)  # drafts
+    title: str = ""  # resolved book title (for a listing card)
+    chapters: list["Chapter"] = field(default_factory=list)
+
+
+def _title_from_dirname(source_dir: Path) -> str:
+    """A human title from a folder name: ``signal-processing`` -> ``Signal Processing``."""
+    return source_dir.resolve().name.replace("-", " ").replace("_", " ").title()
 
 
 def _order_key(meta: dict, fallback: str) -> tuple[int, object, str]:
@@ -401,10 +447,13 @@ def build_book(
         result.pages.append(out_html)
         css_layers.update(page.css_files)
 
+    book_title = title or _title_from_dirname(source_dir) or "Contents"
+    result.title = book_title
+    result.chapters = chapters
     result.contents = _write_contents(
         out_dir,
         chapters,
-        title=title or source_dir.resolve().name or "Contents",
+        title=book_title,
         tagline=tagline or "Read cover to cover.",
     )
 

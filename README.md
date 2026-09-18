@@ -128,6 +128,12 @@ the pages nor the index. Because the search page fetches `search-index.json` at
 runtime, `build-all` always emits a portable folder; `--inline` (a single
 self-contained file) applies only to per-document `build`.
 
+Any *subfolder* of chapters is auto-detected as a [book](#building-a-book): it is
+built into `_site/<name>/` and listed as a single card on `index.html` (titled
+from the folder name, searchable by its chapter titles). So a mixed `examples/`
+folder of loose posts plus a `book/` subfolder builds into one site in a single
+command.
+
 ### Building a book
 
 Where `build-all` makes a flat, search-first collection, `book` builds the same
@@ -151,6 +157,11 @@ chrome. Two things set a book apart from a plain collection:
 `book` writes a `contents.html` entry page (the "Home" each chapter links back
 to) listing every chapter in reading order. Like `build-all`, it always emits a
 portable folder and excludes truthy `draft:` chapters.
+
+You can also let `build-all` build the book for you: a chapter subfolder inside a
+collection is auto-detected (see above), so `feynman book` is the standalone way
+to build a book on its own, while `build-all` folds one (or several) into a
+larger searchable site.
 
 ### Front matter
 

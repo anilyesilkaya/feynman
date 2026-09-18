@@ -148,6 +148,61 @@ def test_empty_dir_builds_nothing(tmp_path):
     assert result.listing.exists()
 
 
+# --- book auto-detection ---------------------------------------------------
+@pytest.fixture
+def site_with_book(tmp_path):
+    src = tmp_path / "posts"
+    src.mkdir()
+    (src / "alpha.md").write_text(_post("Alpha", date="2026-01-02"), encoding="utf-8")
+    # A subfolder of chapters is auto-detected as a book.
+    book = src / "my-book"
+    book.mkdir()
+    (book / "01.md").write_text(
+        _post("Chapter One", body="## Start {#sec-start}\n\nProse."),
+        encoding="utf-8",
+    )
+    (book / "02.md").write_text(
+        _post("Chapter Two", body="Recall @sec-start."), encoding="utf-8"
+    )
+    out = tmp_path / "site"
+    result = collection.build_all(src, out, title="Site")
+    return src, out, result
+
+
+def test_book_built_into_subfolder(site_with_book):
+    _, out, result = site_with_book
+    assert (out / "my-book" / collection.CONTENTS_NAME).exists()
+    assert (out / "my-book" / "01.html").exists()
+    assert result.books == [out / "my-book" / collection.CONTENTS_NAME]
+
+
+def test_book_appears_as_listing_card(site_with_book):
+    _, out, _ = site_with_book
+    html = (out / collection.LISTING_NAME).read_text(encoding="utf-8")
+    # A card linking to the book's contents page, titled from the folder name.
+    assert 'data-post-url="my-book/contents.html"' in html
+    assert ">My Book<" in html
+
+
+def test_book_is_searchable(site_with_book):
+    _, out, _ = site_with_book
+    data = json.loads((out / collection.SEARCH_INDEX_NAME).read_text(encoding="utf-8"))
+    book = next(d for d in data["docs"] if d["url"] == "my-book/contents.html")
+    # Indexed so a search for a chapter title finds the book card.
+    assert "Chapter Two" in book["text"]
+    assert book["keywords"] == "book"
+
+
+def test_asset_subfolders_are_not_books(tmp_path):
+    src = tmp_path / "posts"
+    src.mkdir()
+    (src / "alpha.md").write_text(_post("Alpha"), encoding="utf-8")
+    (src / "media").mkdir()  # an asset folder: no .md, so not a book
+    (src / "media" / "logo.svg").write_text("<svg/>", encoding="utf-8")
+    result = collection.build_all(src, tmp_path / "site")
+    assert result.books == []
+
+
 # --- CLI wiring ------------------------------------------------------------
 def test_cli_build_all_reports(tmp_path, capsys):
     src = tmp_path / "posts"

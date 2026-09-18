@@ -40,12 +40,10 @@ jobs:
       - name: Build site
         run: |
           feynman build-all examples -o _site --title "feynman"
-          # build-all already writes _site/index.html (the search/listing page),
-          # which Pages serves at the site root -- no cp needed. It globs
-          # examples/*.md non-recursively, so the example *book* (a subfolder of
-          # chapters) is built separately into _site/book/, where the demo's
-          # "style: book" link (book/contents.html) resolves.
-          feynman book examples/book -o _site/book --title "Signals" --tagline "A three-chapter feynman book."
+          # build-all writes _site/index.html (the search/listing page), which
+          # Pages serves at the site root -- no cp needed. It also auto-detects
+          # the example *book* (examples/book/, a subfolder of chapters), builds
+          # it into _site/book/, and lists it as a card on index.html.
           # Custom domain: emitted into the artifact so it survives every
           # deploy (an Actions deploy would otherwise drop the Pages CNAME).
           echo "feynman.yesilkaya.dev" > _site/CNAME

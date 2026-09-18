@@ -148,10 +148,12 @@ def main(argv: list[str] | None = None) -> int:
         result = build_all(
             args.source_dir, args.out, title=args.title, tagline=args.tagline
         )
-        if not result.pages:
+        if not result.pages and not result.books:
             print(f"error: no documents built from {args.source_dir}", file=sys.stderr)
             return 2
         print(f"built {len(result.pages)} page(s) -> {args.out}")
+        if result.books:
+            print(f"built {len(result.books)} book(s)")
         if result.skipped:
             print(f"skipped {len(result.skipped)} draft(s)")
         print(f"search page: {result.listing}")
