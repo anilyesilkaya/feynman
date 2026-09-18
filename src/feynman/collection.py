@@ -206,7 +206,11 @@ def build_all(
     # book carries no date, so it lists among the undated entries. Its card text
     # is the chapter titles/subtitles, so a search for a chapter name finds it.
     for book_dir in _discover_books(source_dir):
-        book = build_book(book_dir, out_dir / book_dir.name)
+        # The book sits one level down (out/<name>/), so its contents page links
+        # Home up to this collection's listing at the site root.
+        book = build_book(
+            book_dir, out_dir / book_dir.name, home_url=f"../{LISTING_NAME}"
+        )
         if not book.pages:
             continue  # empty subfolder: build_book already warned
         result.books.append(book.contents)
@@ -346,7 +350,12 @@ def _order_key(meta: dict, fallback: str) -> tuple[int, object, str]:
 
 
 def build_book(
-    source_dir: Path, out_dir: Path, *, title: str = "", tagline: str = ""
+    source_dir: Path,
+    out_dir: Path,
+    *,
+    title: str = "",
+    tagline: str = "",
+    home_url: str | None = None,
 ) -> BookResult:
     """Build a folder of ``*.md`` chapters into an interconnected book.
 
@@ -360,6 +369,10 @@ def build_book(
     Drafts (truthy ``draft:``) are excluded. Like :func:`build_all`, this always
     writes a portable folder: cross-file references are incompatible with a
     single ``--inline`` file.
+
+    ``home_url`` gives the contents page a Home button pointing up to a parent
+    collection (e.g. ``../index.html`` when :func:`build_all` nests a book in a
+    site). A standalone book leaves it ``None`` and shows no Home button.
     """
     source_dir = Path(source_dir)
     out_dir = Path(out_dir)
@@ -455,6 +468,7 @@ def build_book(
         chapters,
         title=book_title,
         tagline=tagline or "Read cover to cover.",
+        home_url=home_url,
     )
 
     # Shared sidecar assets: base CSS + every theme layer any chapter used. The
@@ -466,7 +480,12 @@ def build_book(
 
 
 def _write_contents(
-    out_dir: Path, chapters: list[Chapter], *, title: str, tagline: str
+    out_dir: Path,
+    chapters: list[Chapter],
+    *,
+    title: str,
+    tagline: str,
+    home_url: str | None = None,
 ) -> Path:
     """Render the book's spanning contents page into ``contents.html``."""
     template = build._ENV.get_template("contents.html.j2")
@@ -478,6 +497,7 @@ def _write_contents(
         tagline=tagline,
         kicker="Table of contents",
         hero_title=title,
+        home_url=home_url,
         source_url="",
         # The template reads chapter.number/url/title/subtitle as attributes,
         # which resolve directly against the Chapter dataclass.

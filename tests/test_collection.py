@@ -193,6 +193,25 @@ def test_book_is_searchable(site_with_book):
     assert book["keywords"] == "book"
 
 
+def test_nested_book_contents_links_home_to_listing(site_with_book):
+    _, out, _ = site_with_book
+    contents = (out / "my-book" / collection.CONTENTS_NAME).read_text(encoding="utf-8")
+    # Built inside a collection, the book's contents page links up to the listing.
+    assert 'class="home-link" href="../index.html"' in contents
+
+
+def test_standalone_book_contents_has_no_home(tmp_path):
+    src = tmp_path / "chapters"
+    src.mkdir()
+    (src / "01.md").write_text(
+        _post("One", style="book", order=1, body="Prose."), encoding="utf-8"
+    )
+    result = collection.build_book(src, tmp_path / "site")
+    contents = result.contents.read_text(encoding="utf-8")
+    # No parent collection, so no Home button.
+    assert 'class="home-link"' not in contents
+
+
 def test_asset_subfolders_are_not_books(tmp_path):
     src = tmp_path / "posts"
     src.mkdir()
