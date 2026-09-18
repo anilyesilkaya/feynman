@@ -65,6 +65,9 @@ pip install .            # the generator
 pip install ".[demo]"    # + matplotlib, for the example document
 ```
 
+`feynman draw` also needs the bundled editor submodule — see
+[Development](#development).
+
 ## Usage
 
 Start a new document with `init`, then `build` it:
