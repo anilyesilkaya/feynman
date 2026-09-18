@@ -50,7 +50,7 @@
 /* Footer pager: the primary "keep reading" affordance between chapters. */
 .chapter-pager {
   display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
-  margin: 8px 0 4px; padding-top: 28px; border-top: 1px solid var(--line);
+  margin: 8px 0 72px; padding-top: 28px; border-top: 1px solid var(--line);
 }
 .pager-link {
   display: flex; flex-direction: column; gap: 4px;
