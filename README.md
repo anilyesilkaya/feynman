@@ -225,8 +225,7 @@ GitHub Pages on every push to `main`. To enable it once:
 2. Push to `main` (or re-run the workflow).
 
 The demo then goes live at `https://<user>.github.io/feynman/`, or at the
-custom domain the workflow writes into the site's `CNAME`
-(currently `https://feynman.yesilkaya.dev/`).
+custom domain the workflow writes into the site's `CNAME`.
 
 ## Development
 
