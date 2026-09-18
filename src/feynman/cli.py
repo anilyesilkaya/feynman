@@ -6,11 +6,22 @@ import argparse
 import sys
 from pathlib import Path
 
-from feynman import __version__
+from feynman import __version__, diagnostics
 from feynman.build import build_document
 from feynman.collection import build_all, build_book
 from feynman.editor import DEFAULT_PORT, EditorUnavailableError, serve_editor
 from feynman.scaffold import init_document
+
+
+def _strict_flag(parser: argparse.ArgumentParser) -> None:
+    """Add the shared ``--strict`` flag to a build sub-command."""
+    parser.add_argument(
+        "--strict",
+        action="store_true",
+        help="Treat build diagnostics (invalid front matter, missing assets, "
+        "dangling references, unexpected cell errors, ...) as errors: exit "
+        "nonzero instead of warning and continuing.",
+    )
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -38,6 +49,7 @@ def main(argv: list[str] | None = None) -> int:
         help="Emit one self-contained HTML file (CSS, JS and images inlined) "
         "instead of a portable folder with sidecar assets.",
     )
+    _strict_flag(build)
 
     build_all_parser = sub.add_parser(
         "build-all",
@@ -65,6 +77,7 @@ def main(argv: list[str] | None = None) -> int:
         default="",
         help="Header tagline for the listing page.",
     )
+    _strict_flag(build_all_parser)
 
     book_parser = sub.add_parser(
         "book",
@@ -92,6 +105,7 @@ def main(argv: list[str] | None = None) -> int:
         default="",
         help="Header tagline for the book.",
     )
+    _strict_flag(book_parser)
 
     init = sub.add_parser(
         "init",
@@ -137,7 +151,15 @@ def main(argv: list[str] | None = None) -> int:
         if not args.source.is_file():
             print(f"error: no such file: {args.source}", file=sys.stderr)
             return 2
-        out_html = build_document(args.source, args.out, inline=args.inline)
+        with diagnostics.session(strict=args.strict) as diags:
+            out_html = build_document(args.source, args.out, inline=args.inline)
+        if diags.should_fail():
+            print(
+                f"error: build failed with {len(diags.items)} diagnostic(s) "
+                f"under --strict",
+                file=sys.stderr,
+            )
+            return 1
         print(f"built {out_html}")
         return 0
 
@@ -145,12 +167,20 @@ def main(argv: list[str] | None = None) -> int:
         if not args.source_dir.is_dir():
             print(f"error: no such directory: {args.source_dir}", file=sys.stderr)
             return 2
-        result = build_all(
-            args.source_dir, args.out, title=args.title, tagline=args.tagline
-        )
+        with diagnostics.session(strict=args.strict) as diags:
+            result = build_all(
+                args.source_dir, args.out, title=args.title, tagline=args.tagline
+            )
         if not result.pages and not result.books:
             print(f"error: no documents built from {args.source_dir}", file=sys.stderr)
             return 2
+        if diags.should_fail():
+            print(
+                f"error: build failed with {len(diags.items)} diagnostic(s) "
+                f"under --strict",
+                file=sys.stderr,
+            )
+            return 1
         print(f"built {len(result.pages)} page(s) -> {args.out}")
         if result.books:
             print(f"built {len(result.books)} book(s)")
@@ -163,12 +193,20 @@ def main(argv: list[str] | None = None) -> int:
         if not args.source_dir.is_dir():
             print(f"error: no such directory: {args.source_dir}", file=sys.stderr)
             return 2
-        result = build_book(
-            args.source_dir, args.out, title=args.title, tagline=args.tagline
-        )
+        with diagnostics.session(strict=args.strict) as diags:
+            result = build_book(
+                args.source_dir, args.out, title=args.title, tagline=args.tagline
+            )
         if not result.pages:
             print(f"error: no chapters built from {args.source_dir}", file=sys.stderr)
             return 2
+        if diags.should_fail():
+            print(
+                f"error: build failed with {len(diags.items)} diagnostic(s) "
+                f"under --strict",
+                file=sys.stderr,
+            )
+            return 1
         print(f"built {len(result.pages)} chapter(s) -> {args.out}")
         if result.skipped:
             print(f"skipped {len(result.skipped)} draft(s)")
