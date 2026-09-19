@@ -72,6 +72,11 @@ browser.
   auto-numbered link ("Figure 3", "Equation 1"). Numbers are assigned at build
   time in document order, so forward and backward references both resolve and
   stay correct as the page grows. `fig-` and `viz-` share one "Figure N" counter.
+  Sections number by their position in the heading hierarchy — the second `###`
+  under the second `##` is "Section 2.2" — counting every heading, labelled or
+  not. That number is computed once and is the same one the `article` theme
+  prints on the heading and the sidebar contents shows, so a reference and the
+  page can't disagree. In a book it carries the chapter: "Section 3.1".
 - **Draw figures in-browser.** `feynman draw` launches the bundled
   [svg-canvas](https://github.com/anilyesilkaya/svg-canvas) editor — a
   zero-dependency SVG drawing tool — on localhost. Draw, export the SVG, and

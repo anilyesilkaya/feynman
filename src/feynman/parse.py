@@ -97,6 +97,10 @@ def make_md() -> MarkdownIt:
     # `anchor`, so an author's section label overrides the auto-slug).
     md.inline.ruler.before("emphasis", "xref", crossref.xref_rule)
     md.core.ruler.after("anchor", "section_id", crossref.section_id_rule)
+    # Section numbers, computed once here and stamped on each heading token. The
+    # theme CSS and the sidebar contents display this number rather than counting
+    # headings again, so the three can never disagree.
+    md.core.ruler.after("section_id", "section_number", crossref.number_headings)
     return md
 
 

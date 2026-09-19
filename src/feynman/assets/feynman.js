@@ -930,21 +930,39 @@ customElements.define("feynman-viz", FeynmanViz);
 })();
 
 // --- table of contents + reading progress ---------------------------------
-// The page ships with an empty <ol> in the sidebar; we fill it from the h2s so
-// the document stays the single source of truth for its own structure.
+// The page ships with an empty <ol> in the sidebar; we fill it from the headings
+// so the document stays the single source of truth for its own structure.
+//
+// The number shown against each entry is read from the heading's
+// `data-section-number`, which the build computed once -- not counted again here.
+// That is what makes "Section 2.1" in the prose, "2.1." printed on the heading
+// and "2.1" in this sidebar the same section by construction; three independent
+// counts agreed only until a document had a subsection or an unlabelled heading.
+// Sub-headings are listed (indented) rather than skipped -- a reference can point
+// at one, and a reader who follows it should be able to find where they are.
 (function initContents() {
   const list = document.querySelector(".contents ol");
   const aside = document.querySelector(".contents");
-  const headings = Array.from(document.querySelectorAll(".feynman-prose h2[id]"));
+  // Keyed on the stamped number, not on tag names: every numbered heading is
+  // listed, and only numbered headings are, so this list and the numbers printed
+  // on the page are the same set.
+  const headings = Array.from(
+    document.querySelectorAll(".feynman-prose [id][data-section-number]")
+  );
   const links = [];
 
   if (list && headings.length) {
-    headings.forEach((h, i) => {
+    headings.forEach((h) => {
+      const number = h.dataset.sectionNumber;
+      const depth = number.split(".").length;
       const li = document.createElement("li");
+      if (depth > 1) li.className = `contents-sub contents-depth-${Math.min(depth, 3)}`;
       const a = document.createElement("a");
       a.href = `#${h.id}`;
       const num = document.createElement("span");
-      num.textContent = String(i + 1).padStart(2, "0");
+      // Top-level sections keep the zero-padded "01" look; a subsection shows
+      // its path ("2.1") verbatim, which is exactly what the reference says.
+      num.textContent = depth === 1 ? number.padStart(2, "0") : number;
       a.append(num, document.createTextNode(h.textContent));
       li.append(a);
       list.append(li);

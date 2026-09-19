@@ -105,6 +105,7 @@ def render_page(
         targets=targets,
         current_url=current_url,
         source=str(source),
+        chapter=chapter,
     )
 
     meta = doc.meta or {}

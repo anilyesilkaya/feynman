@@ -478,6 +478,7 @@ def render_document(
     targets: dict[str, Target] | None = None,
     current_url: str = "",
     source: str | None = None,
+    chapter: int | None = None,
 ) -> tuple[Document, str]:
     """Parse and render a document; return metadata and HTML body.
 
@@ -494,8 +495,17 @@ def render_document(
 
     ``source`` is the document's path, attached to any diagnostic emitted here so
     a reader can find the offending file.
+
+    ``chapter`` is this page's chapter number in a book build; it prefixes the
+    section numbers printed on headings so they match the "Section 3.1" that a
+    reference to them renders.
     """
     doc, md, tokens = parse_document(text, source=source)
+
+    # In a book, headings carry the chapter prefix too, matching the numbering a
+    # reference to them shows.
+    if chapter is not None:
+        crossref.prefix_heading_numbers(tokens, chapter)
 
     # Warn once, at build time, about any viz directive naming an unknown type
     # (the reader would silently fall back to the grid renderer otherwise).

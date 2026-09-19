@@ -242,6 +242,15 @@ svg { display: block; max-width: 100%; }
 .contents a span { font: 10px var(--mono); opacity: 0.8; }
 .contents a:hover { color: var(--accent); }
 .contents a[aria-current="location"] { color: var(--accent); border-color: var(--accent); }
+/* A sub-heading sits under its section: indented by depth, a shade quieter and
+   tighter, so the list still reads as an outline rather than a flat run. The
+   depth comes from the stamped section number ("2.1" -> depth 2), so the
+   indentation matches the number shown beside it. */
+.contents .contents-sub a {
+  padding-top: 7px; padding-bottom: 7px; padding-left: 30px;
+  font-size: 11px; opacity: 0.85;
+}
+.contents .contents-depth-3 a { padding-left: 42px; opacity: 0.75; }
 
 /* --- prose ----------------------------------------------------------- */
 .feynman-prose { min-width: 0; max-width: 815px; }

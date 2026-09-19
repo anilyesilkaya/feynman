@@ -415,6 +415,15 @@ svg { display: block; max-width: 100%; }
 .contents a span { font: 10px var(--mono); opacity: 0.8; }
 .contents a:hover { color: var(--accent); }
 .contents a[aria-current="location"] { color: var(--accent); border-color: var(--accent); }
+/* A sub-heading sits under its section: indented by depth, a shade quieter and
+   tighter, so the list still reads as an outline rather than a flat run. The
+   depth comes from the stamped section number ("2.1" -> depth 2), so the
+   indentation matches the number shown beside it. */
+.contents .contents-sub a {
+  padding-top: 7px; padding-bottom: 7px; padding-left: 30px;
+  font-size: 11px; opacity: 0.85;
+}
+.contents .contents-depth-3 a { padding-left: 42px; opacity: 0.75; }
 
 /* --- prose ----------------------------------------------------------- */
 .feynman-prose { min-width: 0; max-width: 815px; }
@@ -1024,15 +1033,22 @@ feynman-viz {
 .abstract p { margin: 0; }
 .keywords { margin-top: 14px; font-size: 13px; color: var(--muted); }
 
-/* Auto-numbered sections: the abstract is excluded (it has no counter bump). */
-.article-prose { counter-reset: section; }
-.article-prose h2 { counter-increment: section; }
-.article-prose .abstract h2 { counter-increment: none; }
-.article-prose h2::before {
-  content: counter(section) ". ";
-  color: var(--muted); font-family: var(--mono); font-size: 0.62em;
+/* Auto-numbered sections. The number is *not* counted here -- the build stamps
+   each heading with `data-section-number` ("2", "2.1", "2.1.1") and this only
+   prints it, so the heading, an `@sec-` reference in the prose and the sidebar
+   contents all show the same string by construction. A CSS counter could not:
+   it saw only the headings it had rules for, so a document with subsections had
+   the reader looking at "3." while the prose said "Section 5".
+   The abstract's h2 is untouched -- the template writes it outside the token
+   stream, so it never gets the attribute. */
+.article-prose [data-section-number]::before {
+  content: attr(data-section-number) " ";
+  color: var(--muted); font-family: var(--mono); font-size: 0.7em;
 }
-.article-prose .abstract h2::before { content: none; }
+.article-prose h2[data-section-number]::before {
+  content: attr(data-section-number) ". ";
+  font-size: 0.62em;
+}
 
 @media (max-width: 820px) {
   .article-layout { display: block; padding-top: 38px; }
@@ -1986,21 +2002,39 @@ customElements.define("feynman-viz", FeynmanViz);
 })();
 
 // --- table of contents + reading progress ---------------------------------
-// The page ships with an empty <ol> in the sidebar; we fill it from the h2s so
-// the document stays the single source of truth for its own structure.
+// The page ships with an empty <ol> in the sidebar; we fill it from the headings
+// so the document stays the single source of truth for its own structure.
+//
+// The number shown against each entry is read from the heading's
+// `data-section-number`, which the build computed once -- not counted again here.
+// That is what makes "Section 2.1" in the prose, "2.1." printed on the heading
+// and "2.1" in this sidebar the same section by construction; three independent
+// counts agreed only until a document had a subsection or an unlabelled heading.
+// Sub-headings are listed (indented) rather than skipped -- a reference can point
+// at one, and a reader who follows it should be able to find where they are.
 (function initContents() {
   const list = document.querySelector(".contents ol");
   const aside = document.querySelector(".contents");
-  const headings = Array.from(document.querySelectorAll(".feynman-prose h2[id]"));
+  // Keyed on the stamped number, not on tag names: every numbered heading is
+  // listed, and only numbered headings are, so this list and the numbers printed
+  // on the page are the same set.
+  const headings = Array.from(
+    document.querySelectorAll(".feynman-prose [id][data-section-number]")
+  );
   const links = [];
 
   if (list && headings.length) {
-    headings.forEach((h, i) => {
+    headings.forEach((h) => {
+      const number = h.dataset.sectionNumber;
+      const depth = number.split(".").length;
       const li = document.createElement("li");
+      if (depth > 1) li.className = `contents-sub contents-depth-${Math.min(depth, 3)}`;
       const a = document.createElement("a");
       a.href = `#${h.id}`;
       const num = document.createElement("span");
-      num.textContent = String(i + 1).padStart(2, "0");
+      // Top-level sections keep the zero-padded "01" look; a subsection shows
+      // its path ("2.1") verbatim, which is exactly what the reference says.
+      num.textContent = depth === 1 ? number.padStart(2, "0") : number;
       a.append(num, document.createTextNode(h.textContent));
       li.append(a);
       list.append(li);
@@ -2251,25 +2285,25 @@ customElements.define("feynman-viz", FeynmanViz);
     <p>This page is built with <code>style: article</code>. It is a sibling of the
 <a href="demo.html">main demo</a>, which uses the default <code>notebook</code> theme; a
 <a href="spec.html">reference / specification</a> page shows the third built-in theme.</p>
-<h2 id="sec-intro">Introduction</h2>
+<h2 id="sec-intro" data-section-number="1">Introduction</h2>
 <p>Use this template for papers, preprints, research notes, technical reports, and
 thesis-like chapters. The reading measure is intentionally narrower than the
 notebook demo, so long-form prose feels closer to a printed journal article.
 Sections are numbered automatically from the document order — this is section 1,
 and the heading above needs no manual “1.”.</p>
-<h2 id="sec-method">Method</h2>
+<h2 id="sec-method" data-section-number="2">Method</h2>
 <p>Introduce assumptions before notation. The equation panel is the same canonical
 feynman treatment used across every theme, numbered so it can be referenced:</p>
 <div class="equation-panel" id="eq-model"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><mrow><mi>y</mi><mo>&#x0003D;</mo><mi>H</mi><mi>x</mi><mo>&#x0002B;</mo><mi>n</mi></mrow></math><span class="equation-number">(1)</span><button type="button" class="equation-copy js-only" data-latex="y = Hx + n" aria-label="Copy LaTeX source"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V4H4v12h4"/></svg></button></div><p>We estimate <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mi>x</mi></mrow></math> from the noisy observation <a class="feynman-xref" href="#eq-model">Equation 1</a>. The panel carries a copy
 button that returns the original LaTeX.</p>
-<h3 id="sec-protocol">Experimental protocol</h3>
+<h3 id="sec-protocol" data-section-number="2.1">Experimental protocol</h3>
 <p>A subhead sits inside the numbered section without taking a number of its own.
 The lab runs in a real kernel at build time, exactly as in the demo:</p>
 <figure class="feynman-cell" data-lang="python"><figcaption class="code-toolbar"><span class="code-label"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m8 7-5 5 5 5m8-10 5 5-5 5m-3-13-2 16"/></svg>python<small>executed at build time</small></span><button type="button" class="copy-button js-only" aria-label="Copy code"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V4H4v12h4"/></svg>Copy</button></figcaption><div class="highlight"><pre><span></span><span class="n">trials</span><span class="p">,</span> <span class="n">snr_lo</span><span class="p">,</span> <span class="n">snr_hi</span> <span class="o">=</span> <span class="mi">1000</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">20</span>
 <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">trials</span><span class="si">}</span><span class="s2"> trials over </span><span class="si">{</span><span class="n">snr_hi</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">snr_lo</span><span class="si">}</span><span class="s2"> dB of SNR (seed 42)"</span><span class="p">)</span>
 </pre></div>
 <div class="feynman-cell-output"><div class="output-label"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg>Output</div><pre class="feynman-output-text">1000 trials over 20 dB of SNR (seed 42)
-</pre></div></figure><h2 id="sec-results">Results</h2>
+</pre></div></figure><h2 id="sec-results" data-section-number="3">Results</h2>
 <p>The results section favours figures and compact interpretation over
 step-by-step narration. <a class="feynman-xref" href="#tbl-protocol">Table 1</a> states the protocol at a glance:</p>
 <figure class="feynman-table-figure" id="tbl-protocol"><figcaption class="feynman-table-caption"><span class="feynman-fig-label">Table 1</span></figcaption><div class="feynman-table-scroll"><table class="feynman-table feynman-table-sortable"><thead>
@@ -2298,14 +2332,14 @@ step-by-step narration. <a class="feynman-xref" href="#tbl-protocol">Table 1</a>
 </tbody>
 </table></div></figure><div class="feynman-box feynman-box-info" role="note"><div class="feynman-box-title"><span class="feynman-box-icon" aria-hidden="true"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="8" r="1.35" fill="currentColor" stroke="none"/><rect x="11" y="11" width="2" height="6" rx="1" fill="currentColor" stroke="none"/></svg></span><span>Contribution</span></div><p>Summarise the main contribution in one or two precise sentences. A research
 document benefits from making its novelty easy to locate.</p>
-</div><h2 id="sec-discussion">Discussion</h2>
+</div><h2 id="sec-discussion" data-section-number="4">Discussion</h2>
 <p>Separate interpretation from measurement. Discuss limitations, external
 validity, and what additional evidence would change the conclusion.</p>
 <blockquote>
 <p>Good scientific documentation makes the boundary between observation and
 interpretation visible.</p>
 </blockquote>
-<h2 id="sec-refs">References</h2>
+<h2 id="sec-refs" data-section-number="5">References</h2>
 <p>Author, C. <em>A representative prior work.</em> Journal of Examples, 2025. See also
 the <a href="demo.html">notebook demo</a> and the <a href="spec.html">specification theme</a> for the
 other two built-in layouts.</p>
