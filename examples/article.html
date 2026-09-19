@@ -491,6 +491,16 @@ svg { display: block; max-width: 100%; }
 .feynman-prose .feynman-table-figure { margin: 24px 0; }
 .feynman-prose .feynman-table-caption {
   margin-bottom: 8px; font: 0.85rem var(--sans); color: var(--muted);
+  /* A caption now carries prose, not just the "Table N" label, so it has to wrap
+     and lead like a sentence rather than sit on one line. */
+  line-height: 1.6;
+}
+/* Caption prose is Markdown, so it can contain a code span -- which the prose
+   rule sets in accent-on-tint at 0.87em. At caption size that reads as a shout;
+   quiet it down and let it wrap with the text. */
+.feynman-prose .feynman-table-caption code {
+  font-size: 0.95em; background: none; color: inherit;
+  padding: 0; white-space: normal;
 }
 .feynman-prose .feynman-table-scroll {
   /* Wide tables scroll horizontally rather than overflowing the measure. A

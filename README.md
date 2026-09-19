@@ -55,8 +55,10 @@ browser.
   ink/paper-toned strokes and fills to follow the light/dark theme.
 - **Interactive tables.** Ordinary Markdown pipe tables. A `{...}` line *above* a
   table opts into extras: `.sortable` makes columns click-to-sort (numeric
-  columns sort by value, others by text), `.striped` / `.compact` restyle it, and
-  a `#tbl-` id gives it a "Table N" caption you reference with `@tbl-`. Column
+  columns sort by value, others by text), `.striped` / `.compact` restyle it,
+  `caption="..."` describes it in Markdown (emphasis, code spans, maths and
+  `@refs` all work), and a `#tbl-` id gives it a "Table N" caption you reference
+  with `@tbl-`. Caption and id are independent — either alone works. Column
   alignment follows the usual `:---:` markers, with numeric columns set in
   tabular figures; wide tables scroll with a sticky header. Sorting is
   progressive enhancement — the static table is fully readable with no JS.

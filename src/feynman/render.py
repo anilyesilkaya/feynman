@@ -97,7 +97,7 @@ _TABLE_OPTION_CLASSES = {
 }
 
 
-def _table_open(token: Token, target: Target | None) -> str:
+def _table_open(token: Token, target: Target | None, caption_html: str = "") -> str:
     """Open a table: a ``<figure>`` wrapper, optional caption, scroll container.
 
     A ``{#tbl-...}`` id (attached by ``attrs_block_plugin``) moves onto the
@@ -106,6 +106,11 @@ def _table_open(token: Token, target: Target | None) -> str:
     (``sortable`` / ``striped`` / ``compact``) are namespaced onto the ``<table>``
     for the stylesheet and the sort enhancer; the default ``thead``/``tbody`` cell
     rendering (including alignment styles) is left untouched.
+
+    ``caption_html`` is the author's ``caption=`` text, already rendered from
+    Markdown by the caller (which owns the parser). A caption needs no id: a table
+    can be described without being numbered, so either alone produces a
+    ``<figcaption>`` and both together produce "Table 1. The text".
     """
     author_classes = (token.attrGet("class") or "").split()
     table_classes = ["feynman-table"] + [
@@ -114,12 +119,19 @@ def _table_open(token: Token, target: Target | None) -> str:
     class_attr = " ".join(dict.fromkeys(table_classes))
 
     id_attr = ""
-    caption = ""
+    label = ""
     if target is not None:
         id_attr = f' id="{escape(target.label, quote=True)}"'
+        label = f'<span class="feynman-fig-label">{escape(target.marker)}</span>'
+
+    caption = ""
+    if label or caption_html:
+        # A separator only when both parts are present, so a caption-only table
+        # does not open with a stray full stop.
+        sep = ". " if label and caption_html else ""
         caption = (
             '<figcaption class="feynman-table-caption">'
-            f'<span class="feynman-fig-label">{escape(target.marker)}</span>'
+            f"{label}{sep}{caption_html}"
             "</figcaption>"
         )
 
@@ -223,6 +235,7 @@ class FeynmanRenderer(RendererHTML):
         collector: AssetCollector | None = None,
         targets: dict[str, Target] | None = None,
         current_url: str = "",
+        parser=None,
     ):
         super().__init__()
         self._cells = cell_results
@@ -230,9 +243,36 @@ class FeynmanRenderer(RendererHTML):
         self._collector = collector
         self._targets = targets or {}
         self._current_url = current_url
+        # The parser, kept so a caption carried in a token *attribute* (rather
+        # than as inner tokens) can still be rendered as Markdown -- see
+        # :meth:`_render_caption`. Optional so a renderer can be built bare in a
+        # unit test; a caption then falls back to escaped plain text.
+        self._parser = parser
         # Per-viz scroll-mode state (set in container_viz_open); see there.
         self._viz_scroll = False
         self._viz_steps_opened = False
+
+    def _render_caption(self, text: str, options, env) -> str:
+        """Render caption text (from a token attribute) as inline Markdown.
+
+        A ``:::viz`` or ``:::figure`` caption is the directive *body*, so it
+        arrives as inner tokens and markdown-it renders it for free. A table's
+        caption cannot work that way -- a line inside the table would be parsed as
+        a row -- so it rides in on the ``{caption="..."}`` attribute as a raw
+        string. Rendering it here is what keeps the two kinds of caption equal:
+        emphasis, code spans, maths and ``@ref`` links all work in both.
+
+        Without a parser (a bare renderer in a unit test) the text is escaped and
+        emitted as-is, so a caption is never dropped and never injects markup.
+        """
+        if not text:
+            return ""
+        if self._parser is None:
+            return escape(text)
+        tokens = self._parser.parseInline(text, env)
+        return "".join(
+            self.renderInline(t.children, options, env) for t in tokens if t.children
+        ).strip()
 
     # --- maths -------------------------------------------------------------
     def math_inline(self, tokens, idx, options, env):
@@ -398,7 +438,8 @@ class FeynmanRenderer(RendererHTML):
     def table_open(self, tokens, idx, options, env):
         token = tokens[idx]
         target = self._targets.get(token.attrGet("id") or "")
-        return _table_open(token, target)
+        caption = self._render_caption(token.attrGet("caption") or "", options, env)
+        return _table_open(token, target, caption)
 
     def table_close(self, tokens, idx, options, env):
         return _table_close()
@@ -514,7 +555,11 @@ def render_document(
             )
 
     renderer = FeynmanRenderer(
-        cell_results, collector=collector, targets=targets, current_url=current_url
+        cell_results,
+        collector=collector,
+        targets=targets,
+        current_url=current_url,
+        parser=md,
     )
     # Some plugins install their render rules on the renderer *instance* that
     # existed when ``make_md()`` ran (``MarkdownIt.add_render_rule`` binds to

@@ -74,3 +74,73 @@ def test_column_alignment_is_preserved():
     body = _body(_SORTABLE)
     assert 'style="text-align:right"' in body
     assert 'style="text-align:left"' in body
+
+
+# --- caption text ----------------------------------------------------------
+# A table could be numbered ("Table 1") but not *described*. Every other figure
+# kind takes caption prose from its directive body; a table cannot, because a line
+# inside it parses as a row -- so the text rides in on `caption="..."`.
+_CAPTIONED = (
+    '{#tbl-c caption="Throughput by **batch size**, see @sec-setup"}\n'
+    "| Batch | Rate |\n"
+    "|------:|-----:|\n"
+    "| 1 | 20 |\n"
+    "\n## Setup {#sec-setup}\n"
+)
+
+
+def test_caption_text_is_rendered_with_the_number():
+    body = _body(_CAPTIONED)
+    assert "feynman-table-caption" in body
+    assert "Table 1" in body
+    assert "Throughput by" in body
+
+
+def test_caption_text_is_markdown_not_literal():
+    body = _body(_CAPTIONED)
+    assert "<strong>batch size</strong>" in body
+    assert "**batch size**" not in body
+
+
+def test_caption_resolves_a_cross_reference():
+    # The same `@ref` machinery as prose: a caption is where a "see Section N"
+    # most often belongs.
+    body = _body(_CAPTIONED)
+    assert '<a class="feynman-xref" href="#sec-setup">Section 1</a>' in body
+
+
+def test_caption_renders_math_and_code():
+    body = _body(
+        '{#tbl-m caption="Cost is $n^2$ per `head`"}\n| a |\n| - |\n| 1 |\n'
+    )
+    assert "<math" in body
+    assert "<code>head</code>" in body
+
+
+def test_caption_without_an_id_still_describes_the_table():
+    # Describing a table and numbering it are separate choices; a caption alone
+    # must not require inventing a `#tbl-` label nobody references.
+    body = _body('{caption="Not numbered, just described"}\n| a |\n| - |\n| 1 |\n')
+    assert "feynman-table-caption" in body
+    assert "Not numbered, just described" in body
+    assert "feynman-fig-label" not in body
+    # No id was requested, so the figure stays unanchored.
+    assert "<figure class=\"feynman-table-figure\">" in body
+
+
+def test_number_only_caption_has_no_stray_separator():
+    body = _body(_SORTABLE)
+    assert "Table 1</span>." not in body
+
+
+def test_empty_caption_is_ignored():
+    body = _body('{#tbl-e caption=""}\n| a |\n| - |\n| 1 |\n')
+    # Still numbered, but no dangling separator from an empty string.
+    assert "Table 1" in body
+    assert "Table 1</span>." not in body
+
+
+def test_caption_is_not_swallowed_as_a_row():
+    body = _body(_CAPTIONED)
+    assert "caption=" not in body
+    assert body.count("<tr") == 2  # header row + one body row
