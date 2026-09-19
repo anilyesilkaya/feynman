@@ -89,6 +89,11 @@ selects a renderer; the same machinery — play, prev, next, and a scrub slider 
 drives them all. The same step always produces the same frame, so a
 visualisation is deterministic and replayable.
 
+Because a frame is just an integer, each figure keeps its step in the URL — drag
+a slider below and the address bar updates to something like `#viz-grid@6`. Copy
+that link and it reopens the page with *that* figure scrolled into view at
+exactly step 6, so you can point a reader at a precise moment in the animation.
+
 Different shapes, one engine. Press **play** or drag a slider on any of them.
 
 A **box grid** lights cells by a rule `(row, col, step) → on?`. This one reveals

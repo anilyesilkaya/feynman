@@ -1571,18 +1571,47 @@ class FeynmanViz extends HTMLElement {
     this.playing = false;
     this.timer = null;
     this.build();
+    // The wrapping <figure> carries the #viz- id (when the directive gave one);
+    // a step can then be deep-linked as `#<id>@<step>` so a reader can share the
+    // figure at an exact frame. Only ided, non-scroll figures participate.
+    const fig = this.closest("figure[id]");
+    this.vizId = fig ? fig.id : null;
     // A figure marked data-viz-scroll drives its step from the reading position
     // rather than an opening frame; wire that up and let the first waypoint set
-    // the initial step. Otherwise open on a partially-advanced frame so a reader
-    // who never presses play still sees a meaningful picture.
+    // the initial step. Otherwise open on a deep-linked step if the URL names
+    // this figure, else a partially-advanced frame so a reader who never presses
+    // play still sees a meaningful picture.
     this.scrollFigure = this.closest("[data-viz-scroll]");
     if (this.scrollFigure) {
       this.observeScroll();
     } else {
-      const initial = this.spec.start != null ? this.spec.start : Math.round(this.steps * 0.6);
+      const linked = this.stepFromHash();
+      const initial =
+        linked != null
+          ? linked
+          : this.spec.start != null
+          ? this.spec.start
+          : Math.round(this.steps * 0.6);
       this.seek(initial);
+      // A matching deep link should bring its figure into view; the native
+      // anchor jump can't, since `#id@step` is not an element id. Defer one
+      // frame so later-upgrading content below doesn't shift the target away.
+      if (linked != null && fig) {
+        requestAnimationFrame(() => fig.scrollIntoView({ block: "center" }));
+      }
     }
     this.observe();
+    // Reflect *user* seeks into the URL from here on. The initial seek above must
+    // not write, or on a page with several vizzes a later one's default frame
+    // would clobber an incoming deep link aimed at an earlier figure.
+    this._ready = true;
+    // Keep the drawing in sync if the hash changes while the page is open (a
+    // pasted link, a same-page anchor, a back/forward step).
+    this._onHashChange = () => {
+      const s = this.stepFromHash();
+      if (s != null && s !== this.step) this.seek(s);
+    };
+    window.addEventListener("hashchange", this._onHashChange);
   }
 
   disconnectedCallback() {
@@ -1590,6 +1619,37 @@ class FeynmanViz extends HTMLElement {
     if (this.io) this.io.disconnect();
     if (this.stepIo) this.stepIo.disconnect();
     if (this._detachScroll) this._detachScroll();
+    if (this._onHashChange) window.removeEventListener("hashchange", this._onHashChange);
+    clearTimeout(this._hashTimer);
+  }
+
+  // Parse `#<vizId>@<step>` from the URL, returning the step for *this* figure
+  // or null (no hash, a different figure, or a scroll-driven one, which owns its
+  // step through scroll position rather than a shareable frame).
+  stepFromHash() {
+    if (!this.vizId || this.scrollFigure) return null;
+    const m = /^#([^@]+)@(\d+)$/.exec(location.hash || "");
+    if (!m || decodeURIComponent(m[1]) !== this.vizId) return null;
+    return parseInt(m[2], 10);
+  }
+
+  // Reflect the current step into the URL as `#<vizId>@<step>`, so it can be
+  // bookmarked or shared. `replaceState` (not `location.hash =`) avoids both a
+  // history entry per scrub tick and the browser's native jump-to-anchor scroll;
+  // a short debounce collapses a drag or an autoplay burst into one write. The
+  // last figure the reader touches owns the hash.
+  syncHash() {
+    if (!this._ready || !this.vizId || this.scrollFigure) return;
+    clearTimeout(this._hashTimer);
+    this._hashTimer = setTimeout(() => {
+      const hash = `#${this.vizId}@${this.step}`;
+      if (hash === location.hash) return;
+      try {
+        history.replaceState(null, "", location.pathname + location.search + hash);
+      } catch (_e) {
+        /* file:// or a sandboxed frame: skip silently; the viz still works. */
+      }
+    }, 200);
   }
 
   readSpec() {
@@ -1645,6 +1705,7 @@ class FeynmanViz extends HTMLElement {
   seek(step) {
     this.step = Math.max(0, Math.min(this.steps, step | 0));
     this.paint();
+    this.syncHash();
   }
 
   toggle() {

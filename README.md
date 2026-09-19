@@ -277,6 +277,12 @@ takes a `pattern` (`causal`, `fill`, `diagonal`, `circle`) and `fourier` a
 `target` (`square`, `sawtooth`, `triangle`). An unknown `type=` warns at build
 time and falls back to the grid renderer.
 
+**Deep-linkable steps.** A figure with a `#viz-` id reflects its current step
+into the URL as `…/page.html#viz-grid@4`, so a reader can bookmark or share the
+figure *at an exact frame*. Opening such a link scrolls that figure into view
+and seeks it to the step; other figures on the page keep their own defaults. It
+uses `history.replaceState`, so scrubbing never floods the back button.
+
 **Scroll-driven mode.** Add a bare `scroll` flag and nest `::: step {to=N}`
 waypoints inside the block. The opening line pins as a caption with the figure;
 the waypoints scroll past in their own column, and the drawing eases toward each
