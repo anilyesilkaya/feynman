@@ -497,6 +497,38 @@ feynman-viz {
   margin-top: 12px;
 }
 
+/* --- scroll-driven viz (:::viz {... scroll}) -------------------------- */
+/* The drawing AND its caption header (the "Figure N" label + intro prose)
+   share one sticky block, so they pin together and the header never orphans
+   above the figure. Only the ::: step waypoints -- moved into .fv-scroll-steps
+   -- scroll past, each tall enough to give the reader a beat per step. With no
+   JS the sticky positioning is harmless and the waypoints read as normal prose. */
+.feynman-viz-scroll .fv-sticky {
+  position: sticky; top: 12vh; z-index: 1;
+  background: var(--paper);
+}
+/* The pinned caption header sits under the drawing, inside the sticky block. */
+.feynman-viz-scroll .fv-sticky figcaption { margin-top: 12px; }
+.feynman-viz-scroll .fv-scroll-steps { margin-top: 8px; }
+.feynman-viz-scroll .fv-scroll-step {
+  min-height: 46vh;
+  display: flex; flex-direction: column; justify-content: center;
+  font-size: 15px; line-height: 1.7; color: var(--muted);
+  border-left: 2px solid var(--line); padding-left: 16px;
+  transition: color 200ms ease, border-color 200ms ease;
+}
+/* The active waypoint (nearest the reading line) is highlighted so the reader
+   sees which step the drawing is showing. JS sets aria-current on it. */
+.feynman-viz-scroll .fv-scroll-step[aria-current] {
+  border-left-color: var(--accent); color: var(--ink);
+}
+/* Trim the last waypoint's tail so the figure unpins promptly after the final
+   step rather than leaving a long empty scroll gap. */
+.feynman-viz-scroll .fv-scroll-step:last-child { min-height: 30vh; }
+@media (prefers-reduced-motion: reduce) {
+  .fv-cell, .fv-dot, .feynman-viz-scroll .fv-scroll-step { transition: none; }
+}
+
 /* --- embedded figures (:::figure) ------------------------------------ */
 /* An external SVG inlined into the body. Framed like a viz block so the two
    read as one family; the SVG scales to the column width. */

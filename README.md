@@ -33,6 +33,13 @@ browser.
   integer step, driven by play / prev / next / scrub controls. Ships with
   `grid`, `radial`, `wave`, `fourier` and `galton` types; the type registry
   validates directives at build time, warning on an unknown `type=`.
+- **Scroll-driven visualisations.** Add a bare `scroll` flag to a `:::viz` and
+  nest `::: step {to=N}` waypoints in its caption: the figure sticks in view
+  while the prose scrolls past, seeking the drawing to each waypoint's step as it
+  reaches the reading line — the reader drives the animation by reading. Same
+  pure-function-of-a-step engine; only the input changes from a slider to the
+  scroll position. It is progressive enhancement: with JavaScript off the
+  waypoints are ordinary paragraphs and the scrubber still works.
 - **Embedded SVG figures.** A `:::figure {src=diagram.svg}` directive inlines an
   external SVG into the page as a captioned, numbered figure — sharing the same
   "Figure N" counter as executed charts and `:::viz` blocks via a `#fig-` id.

@@ -34,6 +34,9 @@ from html import escape
 # validate matcher, but we tolerate it here too.
 _PARAMS_RE = re.compile(r"\{([^}]*)\}")
 _PAIR_RE = re.compile(r"(\w[\w-]*)\s*=\s*([^\s]+)")
+# A bare word flag among the params (no ``=``), e.g. ``scroll`` in
+# ``{type=grid scroll #viz-x}``. Enables prose-driven ("scrollytelling") mode.
+_FLAG_RE = re.compile(r"(?:^|\s)(scroll)(?=\s|$)")
 # A bare ``#slug`` token among the params gives the figure a cross-reference id,
 # e.g. ``{type=radial spokes=20 #viz-sweep}``. Matches the ``#id`` spelling used
 # for equations, listings and sections; resolved by :mod:`feynman.crossref`.
@@ -125,6 +128,13 @@ def parse_params(info: str) -> dict:
     if id_match:
         parsed["id"] = id_match.group(1)
 
+    # A bare ``scroll`` flag opts the figure into prose-driven mode: nested
+    # ``::: step {to=N}`` waypoints seek the visualisation as the reader scrolls
+    # them past. It rides in the spec under ``scroll`` and, like ``id``, is
+    # stripped from the client JSON (the runtime keys off a DOM attribute).
+    if _FLAG_RE.search(body):
+        parsed["scroll"] = True
+
     vtype = parsed.get("type", DEFAULT_TYPE)
     # Unknown types fall back to the grid shape for defaults so the client's
     # grid fallback still gets a coherent spec; validate_viz warns separately.
@@ -179,22 +189,95 @@ def render_spec(spec: dict, marker: str = "") -> str:
     A ``#viz-...`` id (parsed into ``spec['id']``) is placed on the wrapping
     ``<figure>`` as the anchor and stripped from the client JSON, so the runtime
     spec stays a pure description of the drawing.
+
+    A ``scroll`` flag (parsed into ``spec['scroll']``) opts the figure into
+    prose-driven mode: it is stripped from the client JSON too, surfacing instead
+    as a ``data-viz-scroll`` attribute on the ``<figure>``. The drawing *and* its
+    caption header (the "Figure N" label and any intro prose before the first
+    ``::: step``) share one sticky block, so they pin together and the header can
+    never orphan above the figure. Only the ``::: step`` waypoints, moved into a
+    separate scrolling column by :func:`render_scroll_steps_open`, scroll past;
+    the runtime seeks the drawing to each as it reaches the reading line. The
+    controls still render, so with JavaScript off the figure is a normal, fully
+    usable scrubber.
     """
     fig_id = spec.pop("id", None)
+    scroll = spec.pop("scroll", False)
     spec_json = json.dumps(spec, separators=(",", ":"))
     label = escape(f"{spec['type']} visualisation, {spec['steps']} steps")
     id_attr = f' id="{escape(fig_id, quote=True)}"' if fig_id else ""
     caption_marker = (
         f'<span class="feynman-fig-label">{escape(marker)}</span> ' if marker else ""
     )
-    return (
-        f'<figure class="feynman-viz-figure"{id_attr}>'
+    element = (
         f'<feynman-viz aria-label="{label}">'
         f'<script type="application/json" class="feynman-viz-spec">{spec_json}</script>'
         f"</feynman-viz>"
+    )
+    if scroll:
+        # The sticky block wraps the drawing AND its figcaption (label + intro),
+        # so the caption pins with the figure. The renderer closes this block and
+        # opens the scrolling waypoint column at the first ``::: step`` (see
+        # render_scroll_steps_open); ``data-viz-scroll`` flips the runtime on.
+        return (
+            f'<figure class="feynman-viz-figure feynman-viz-scroll" '
+            f'data-viz-scroll{id_attr}>'
+            f'<div class="fv-sticky">{element}'
+            f'<figcaption>{caption_marker}'
+        )
+    return (
+        f'<figure class="feynman-viz-figure"{id_attr}>'
+        f"{element}"
         f"<figcaption>{caption_marker}"
     )
 
 
-def render_viz_close() -> str:
+def render_scroll_steps_open() -> str:
+    """Transition from the pinned caption header to the scrolling waypoint column.
+
+    Emitted once by the renderer at the first ``::: step`` inside a scroll-mode
+    viz: it closes the ``<figcaption>`` and the sticky block (ending the pinned
+    header), then opens the ``.fv-scroll-steps`` column the waypoints live in.
+    """
+    return '</figcaption></div><div class="fv-scroll-steps">'
+
+
+def render_viz_close(scroll: bool = False, steps_opened: bool = False) -> str:
+    """Close a viz figure. In scroll mode the closers depend on what was opened.
+
+    A classic figure just closes its caption and figure. A scroll figure whose
+    waypoints opened the ``.fv-scroll-steps`` column closes that column and the
+    figure; one with no ``::: step`` at all still has the sticky block and
+    figcaption open, so it closes those instead (a graceful, if static, fallback).
+    """
+    if scroll:
+        if steps_opened:
+            return "</div></figure>"  # close .fv-scroll-steps + figure
+        return "</figcaption></div></figure>"  # no waypoints: close header + figure
     return "</figcaption></figure>"
+
+
+# A ``::: step {to=N}`` waypoint's target step. ``to`` is coerced to a
+# non-negative int; a missing/garbled value yields step 0 (a safe start frame).
+_STEP_TO_RE = re.compile(r"\bto\s*=\s*(\d+)")
+
+
+def parse_step_to(info: str) -> int:
+    """Return the ``to=`` step a ``::: step`` waypoint seeks to (0 if absent)."""
+    match = _STEP_TO_RE.search(info or "")
+    return int(match.group(1)) if match else 0
+
+
+def render_step_open(info: str) -> str:
+    """Open a scroll waypoint: a block carrying its target step in ``data-viz-step``.
+
+    Nested inside a ``:::viz {... scroll}`` block; the runtime observes these and
+    seeks the drawing to ``to=`` as each scrolls into view. The body (rendered by
+    the inner tokens) is ordinary prose, so the waypoint reads as a normal
+    paragraph with JavaScript off.
+    """
+    return f'<div class="fv-scroll-step" data-viz-step="{parse_step_to(info)}">'
+
+
+def render_step_close() -> str:
+    return "</div>"

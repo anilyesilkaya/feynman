@@ -182,6 +182,9 @@ class FeynmanRenderer(RendererHTML):
         self._collector = collector
         self._targets = targets or {}
         self._current_url = current_url
+        # Per-viz scroll-mode state (set in container_viz_open); see there.
+        self._viz_scroll = False
+        self._viz_steps_opened = False
 
     # --- maths -------------------------------------------------------------
     def math_inline(self, tokens, idx, options, env):
@@ -270,13 +273,37 @@ class FeynmanRenderer(RendererHTML):
     # --- viz container -----------------------------------------------------
     def container_viz_open(self, tokens, idx, options, env):
         info = tokens[idx].info
-        viz_id = directives.parse_params(info).get("id")
-        target = self._targets.get(viz_id or "")
+        spec = directives.parse_params(info)
+        target = self._targets.get(spec.get("id") or "")
         marker = target.marker if target is not None else ""
+        # Track scroll-mode state for this viz so the close (and the first
+        # ``::: step``) can emit the matching structure. Viz blocks never nest,
+        # so a pair of flags is enough. ``_viz_steps_opened`` flips at the first
+        # waypoint, when the pinned header closes and the scrolling column opens.
+        self._viz_scroll = bool(spec.get("scroll"))
+        self._viz_steps_opened = False
         return directives.render_viz_open(info, marker=marker)
 
     def container_viz_close(self, tokens, idx, options, env):
-        return directives.render_viz_close()
+        markup = directives.render_viz_close(
+            scroll=self._viz_scroll, steps_opened=self._viz_steps_opened
+        )
+        self._viz_scroll = False
+        self._viz_steps_opened = False
+        return markup
+
+    # --- scroll waypoints (nested inside a scroll-mode viz) ----------------
+    def container_step_open(self, tokens, idx, options, env):
+        prefix = ""
+        # In scroll mode the first waypoint ends the pinned caption header and
+        # opens the scrolling waypoint column; later waypoints just open.
+        if self._viz_scroll and not self._viz_steps_opened:
+            prefix = directives.render_scroll_steps_open()
+            self._viz_steps_opened = True
+        return prefix + directives.render_step_open(tokens[idx].info)
+
+    def container_step_close(self, tokens, idx, options, env):
+        return directives.render_step_close()
 
     # --- callout boxes -----------------------------------------------------
     def container_box_open(self, tokens, idx, options, env):

@@ -5,6 +5,10 @@ from __future__ import annotations
 from feynman.directives import (
     VIZ_TYPES,
     parse_params,
+    parse_step_to,
+    render_scroll_steps_open,
+    render_step_open,
+    render_viz_close,
     render_viz_open,
     validate_viz,
 )
@@ -116,3 +120,90 @@ def test_viz_id_on_figure_not_in_spec_json():
 def test_viz_marker_renders_in_caption():
     markup = render_viz_open("viz {type=grid #viz-demo}", marker="Figure 2")
     assert '<span class="feynman-fig-label">Figure 2</span>' in markup
+
+
+# --- scroll-driven mode ----------------------------------------------------
+def test_scroll_flag_parsed():
+    spec = parse_params("viz {type=grid rows=6 scroll}")
+    assert spec["scroll"] is True
+    # The other params are unaffected by the bare flag.
+    assert spec["type"] == "grid" and spec["rows"] == 6
+
+
+def test_scroll_flag_absent_by_default():
+    assert "scroll" not in parse_params("viz {type=grid rows=6}")
+
+
+def test_scroll_flag_not_confused_with_a_param_value():
+    # A param whose value happens to contain "scroll" must not trip the flag.
+    assert "scroll" not in parse_params("viz {type=grid pattern=scrollish}")
+
+
+def test_scroll_flag_coexists_with_id():
+    spec = parse_params("viz {type=grid scroll #viz-x}")
+    assert spec["scroll"] is True and spec["id"] == "viz-x"
+
+
+def test_scroll_mode_emits_sticky_wrapper_and_data_attr():
+    markup = render_viz_open("viz {type=grid rows=6 scroll #viz-x}")
+    assert 'data-viz-scroll' in markup
+    assert 'class="feynman-viz-figure feynman-viz-scroll"' in markup
+    assert '<div class="fv-sticky">' in markup
+    # scroll, like id, is stripped from the client JSON spec.
+    assert '"scroll"' not in markup
+    assert '"id"' not in markup
+    # The id still anchors the figure.
+    assert 'id="viz-x"' in markup
+
+
+def test_scroll_mode_caption_is_inside_sticky_block():
+    # The caption (label + intro prose) must open *inside* the sticky block so it
+    # pins with the drawing and cannot orphan above it: the <figcaption> comes
+    # after the sticky <div> opens and the <feynman-viz> closes, with no
+    # intervening </div>.
+    markup = render_viz_open("viz {type=grid scroll #viz-x}", marker="Figure 7")
+    sticky = markup.index('<div class="fv-sticky">')
+    caption = markup.index("<figcaption>")
+    assert sticky < caption
+    assert "</div>" not in markup[sticky:caption]  # sticky stays open through caption
+    assert '<span class="feynman-fig-label">Figure 7</span>' in markup
+
+
+def test_scroll_steps_open_closes_header_and_opens_column():
+    # The transition at the first ::: step closes the figcaption and sticky block
+    # (ending the pinned header) then opens the scrolling waypoint column.
+    assert render_scroll_steps_open() == (
+        '</figcaption></div><div class="fv-scroll-steps">'
+    )
+
+
+def test_scroll_close_matches_opened_structure():
+    # With waypoints: the steps column and figure close.
+    assert render_viz_close(scroll=True, steps_opened=True) == "</div></figure>"
+    # Scroll viz with no ::: step: the still-open header + figure close instead.
+    assert (
+        render_viz_close(scroll=True, steps_opened=False)
+        == "</figcaption></div></figure>"
+    )
+    # Classic (non-scroll) viz is unchanged.
+    assert render_viz_close() == "</figcaption></figure>"
+
+
+def test_non_scroll_mode_has_no_sticky_wrapper():
+    markup = render_viz_open("viz {type=grid rows=6}")
+    assert "fv-sticky" not in markup
+    assert "data-viz-scroll" not in markup
+
+
+def test_parse_step_to():
+    assert parse_step_to("step {to=3}") == 3
+    assert parse_step_to("step {to=0}") == 0
+    # A missing or garbled to= is a safe step 0.
+    assert parse_step_to("step") == 0
+    assert parse_step_to("step {to=nope}") == 0
+
+
+def test_render_step_open_carries_target_step():
+    assert render_step_open("step {to=7}") == (
+        '<div class="fv-scroll-step" data-viz-step="7">'
+    )
