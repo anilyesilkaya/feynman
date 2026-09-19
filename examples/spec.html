@@ -443,6 +443,37 @@ svg { display: block; max-width: 100%; }
 .feynman-prose strong { color: var(--ink); font-weight: 600; }
 .feynman-prose ul, .feynman-prose ol { color: var(--body); padding-left: 1.3rem; }
 .feynman-prose li { margin: 0.4rem 0; }
+/* Strikethrough (`~~text~~`): a retraction, so it recedes rather than shouts. */
+.feynman-prose s, .feynman-prose del { color: var(--muted); }
+/* Definition lists (`Term` / `:   definition`): the term carries the weight, the
+   body is indented under it -- a glossary, which is what authors reach for. */
+.feynman-prose dl { margin: 0 0 20px; color: var(--body); }
+.feynman-prose dt { margin-top: 16px; color: var(--ink); font-weight: 600; }
+.feynman-prose dd { margin: 4px 0 0 1.3rem; line-height: 1.85; }
+/* Task lists (`- [x] done`): the checkbox replaces the marker, so drop the
+   bullet and pull the row back into the measure. Checkboxes ship disabled -- the
+   state is authored in the source, not toggled by the reader. */
+.feynman-prose .task-list-item { list-style: none; margin-left: -1.3rem; }
+.feynman-prose .task-list-item input[type="checkbox"] {
+  margin-right: 0.5rem;
+  accent-color: var(--accent);
+}
+/* Footnotes: the reference is a superscript link, the definitions a smaller
+   block at the foot of the prose. The plugin emits its own `<hr
+   class="footnotes-sep">` *before* the section; we hide it and use a border on
+   the section instead, so the rule matches the measure and the print rules. */
+.feynman-prose .footnote-ref { font-size: 0.8em; font-variant-numeric: normal; }
+.feynman-prose .footnote-ref a { text-decoration: none; }
+.feynman-prose .footnotes-sep { display: none; }
+.feynman-prose .footnotes {
+  margin: 48px 0 0; padding-top: 20px;
+  border-top: 1px solid var(--line);
+  font-size: 0.9em; color: var(--muted);
+}
+.feynman-prose .footnotes-list { padding-left: 1.3rem; }
+.feynman-prose .footnote-item { margin: 0.6rem 0; }
+.feynman-prose .footnote-item p { margin: 0 0 8px; line-height: 1.7; }
+.feynman-prose .footnote-backref { text-decoration: none; margin-left: 4px; }
 .feynman-prose hr { height: 1px; border: 0; background: var(--line); margin: 48px 0; }
 .feynman-prose blockquote {
   margin: 24px 0; padding: 4px 0 4px 20px;

@@ -138,3 +138,126 @@ def test_clean_doc_passes_strict(tmp_path):
     src = _write(tmp_path, "doc.md", "---\ntitle: T\n---\n\nJust prose, $x^2$.\n")
     code = cli.main(["build", str(src), "-o", str(tmp_path / "out"), "--strict"])
     assert code == 0
+
+
+# --- boolean cell options ---------------------------------------------------
+def test_allow_error_no_does_not_disarm_strict(tmp_path):
+    # ``no`` used to be kept as the string "no" -- truthy -- so this spelling
+    # silently switched *off* the very check it names.
+    src = _write(
+        tmp_path,
+        "doc.md",
+        "---\ntitle: T\n---\n\n```{python}\n#| allow-error: no\n"
+        "raise ValueError('boom')\n```\n",
+    )
+    code = cli.main(["build", str(src), "-o", str(tmp_path / "out"), "--strict"])
+    assert code == 1
+
+
+def test_allow_error_yes_is_accepted(tmp_path):
+    src = _write(
+        tmp_path,
+        "doc.md",
+        "---\ntitle: T\n---\n\n```{python}\n#| allow-error: yes\n"
+        "raise ValueError('intended')\n```\n",
+    )
+    code = cli.main(["build", str(src), "-o", str(tmp_path / "out"), "--strict"])
+    assert code == 0
+
+
+def test_unreadable_boolean_option_is_reported(tmp_path):
+    src = _write(
+        tmp_path,
+        "doc.md",
+        "---\ntitle: T\n---\n\n```{python}\n#| echo: sometimes\nx = 1\n```\n",
+    )
+    with diagnostics.session() as diags:
+        from feynman.build import build_document
+
+        build_document(src, tmp_path / "out")
+    assert any("expects a boolean" in d.message for d in diags.items)
+    # The default (echo on) applies, so the source is still shown.
+    html = (tmp_path / "out" / "doc.html").read_text(encoding="utf-8")
+    assert "feynman-cell" in html
+
+
+# --- a :::figure pointed at a binary file ----------------------------------
+def test_figure_on_a_png_reports_and_does_not_crash(tmp_path):
+    import base64
+
+    png = base64.b64decode(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4"
+        "2mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
+    )
+    (tmp_path / "pic.png").write_bytes(png)
+    src = _write(
+        tmp_path,
+        "doc.md",
+        "---\ntitle: T\n---\n\n::: figure {src=pic.png #fig-p}\nA chart.\n:::\n",
+    )
+    with diagnostics.session() as diags:
+        from feynman.build import build_document
+
+        build_document(src, tmp_path / "out")
+    # Reported as undecodable, not as missing -- the file is right there.
+    assert any("not UTF-8 text" in d.message for d in diags.items)
+    assert not any("asset not found" in d.message for d in diags.items)
+    html = (tmp_path / "out" / "doc.html").read_text(encoding="utf-8")
+    assert "feynman-figure-missing" in html
+    assert "raster image" in html
+    assert "not found" not in html
+
+
+def test_figure_on_a_png_fails_strict_without_writing(tmp_path):
+    import base64
+
+    png = base64.b64decode(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4"
+        "2mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
+    )
+    (tmp_path / "pic.png").write_bytes(png)
+    src = _write(
+        tmp_path,
+        "doc.md",
+        "---\ntitle: T\n---\n\n::: figure {src=pic.png}\nA chart.\n:::\n",
+    )
+    out = tmp_path / "out"
+    assert cli.main(["build", str(src), "-o", str(out), "--strict"]) == 1
+    assert list(out.rglob("*")) == []
+
+
+# --- strict must not publish the page it just condemned --------------------
+def test_strict_writes_nothing(tmp_path):
+    src = _write(tmp_path, "doc.md", "---\ntitle: T\n---\n\nSee @fig-missing.\n")
+    out = tmp_path / "out"
+    assert cli.main(["build", str(src), "-o", str(out), "--strict"]) == 1
+    # Not even the sidecar assets: a half-built directory reads as a good build.
+    assert list(out.rglob("*")) == []
+    # Without --strict the same document still publishes, warning and all.
+    ok = tmp_path / "ok"
+    assert cli.main(["build", str(src), "-o", str(ok)]) == 0
+    assert (ok / "doc.html").exists()
+
+
+def test_strict_build_all_writes_nothing(tmp_path):
+    posts = tmp_path / "posts"
+    posts.mkdir()
+    _write(posts, "a.md", "---\ntitle: A\n---\n\nFine.\n")
+    _write(posts, "b.md", "---\ntitle: B\n---\n\nSee @fig-nope.\n")
+    out = tmp_path / "site"
+    assert cli.main(["build-all", str(posts), "-o", str(out), "--strict"]) == 1
+    assert list(out.rglob("*")) == []
+    # The good page is withheld too: a site with one chapter silently absent is
+    # worse than no site at all, and the whole point of --strict is to stop.
+    assert cli.main(["build-all", str(posts), "-o", str(tmp_path / "s2")]) == 0
+    assert (tmp_path / "s2" / "a.html").exists()
+
+
+def test_strict_book_writes_nothing(tmp_path):
+    chapters = tmp_path / "chapters"
+    chapters.mkdir()
+    _write(chapters, "01-one.md", "---\ntitle: One\n---\n\nFine.\n")
+    _write(chapters, "02-two.md", "---\ntitle: Two\n---\n\nSee @fig-nope.\n")
+    out = tmp_path / "book"
+    assert cli.main(["book", str(chapters), "-o", str(out), "--strict"]) == 1
+    assert list(out.rglob("*")) == []

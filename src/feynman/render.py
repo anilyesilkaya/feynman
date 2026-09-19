@@ -139,31 +139,79 @@ def _collect_executable_sources(tokens: list[Token]) -> list[str]:
     return [t.content for t in tokens if t.type == "fence" and _is_executable(t.info)]
 
 
-def _cell_options(source: str) -> tuple[dict, str]:
-    """Split leading ``#| key: value`` option lines from a cell's source.
+#: Cell options whose value steers behaviour rather than being carried as text.
+#: Kept explicit so an unrecognised value can be *rejected* for these keys only
+#: -- an unknown key such as ``fig-cap`` still passes through as a string.
+_BOOL_OPTIONS = frozenset({"echo", "output", "allow-error"})
+_TRUE_VALUES = frozenset({"true", "yes", "on", "1"})
+_FALSE_VALUES = frozenset({"false", "no", "off", "0"})
+_BOOL_VALUES = _TRUE_VALUES | _FALSE_VALUES
 
-    Boolean options understood: ``echo`` (show the source, default true),
-    ``output`` (show the captured output, default true), and ``allow-error``
-    (default false) which marks a raising cell as intentional so ``--strict``
-    does not fail on its traceback. ``label`` sets a stable ``id`` on the cell
-    for linking. Unknown options are ignored but still stripped from the
-    displayed source.
+
+def _option_lines(source: str) -> tuple[list[tuple[str, str]], str]:
+    """Split the leading ``#| key: value`` lines off a cell; ``(pairs, code)``.
+
+    Values come back verbatim, because the two callers need different things
+    from them: :func:`_cell_options` folds case and coerces, while
+    :func:`_cell_option_warnings` must be able to tell ``no`` from ``false``.
     """
-    opts: dict = {}
+    pairs: list[tuple[str, str]] = []
     lines = source.splitlines()
     i = 0
     while i < len(lines) and lines[i].lstrip().startswith("#|"):
         directive = lines[i].split("#|", 1)[1].strip()
         if ":" in directive:
             key, _, value = directive.partition(":")
-            key, value = key.strip(), value.strip()
-            # Only fold case for the bool test, so a `label` keeps its casing.
-            if value.lower() in ("true", "false"):
-                opts[key] = value.lower() == "true"
-            else:
-                opts[key] = value
+            pairs.append((key.strip(), value.strip()))
         i += 1
-    return opts, "\n".join(lines[i:])
+    return pairs, "\n".join(lines[i:])
+
+
+def _cell_options(source: str) -> tuple[dict, str]:
+    """Split leading ``#| key: value`` option lines from a cell's source.
+
+    Boolean options understood: ``echo`` (show the source, default true),
+    ``output`` (show the captured output, default true), and ``allow-error``
+    (default false) which marks a raising cell as intentional so ``--strict``
+    does not fail on its traceback. Each accepts ``true``/``yes``/``on``/``1``
+    or ``false``/``no``/``off``/``0``, in any case. ``label`` sets a stable
+    ``id`` on the cell for linking. Unknown options are ignored but still
+    stripped from the displayed source.
+
+    A boolean option given an unrecognised value is left *unset*, so the
+    documented default applies. Keeping the raw string instead is how
+    ``#| allow-error: no`` came to mean "yes": every non-empty string is truthy,
+    so the option silently disarmed the ``--strict`` check it names.
+    :func:`_cell_option_warnings` reports the value so the typo is visible.
+    """
+    opts: dict = {}
+    pairs, code = _option_lines(source)
+    for key, value in pairs:
+        if key not in _BOOL_OPTIONS:
+            opts[key] = value  # carried as text; `label` keeps its casing
+        elif value.lower() in _TRUE_VALUES:
+            opts[key] = True
+        elif value.lower() in _FALSE_VALUES:
+            opts[key] = False
+    return opts, code
+
+
+def _cell_option_warnings(source: str) -> list[str]:
+    """Report cell options whose value would otherwise be misread in silence.
+
+    Only the boolean options are checked. They are the ones where a bad value
+    used to *change behaviour* rather than merely be carried along, and where the
+    author's intent is unambiguous enough to call the value a mistake. An
+    unrecognised *key* stays silent on purpose: ``#| fig-cap:`` and friends are
+    accepted for forward compatibility and an author may annotate a cell freely.
+    """
+    accepted = ", ".join(sorted(_BOOL_VALUES))
+    return [
+        f"cell option {key!r} expects a boolean, got {value!r}; ignoring it "
+        f"and using the default. Accepted: {accepted}."
+        for key, value in _option_lines(source)[0]
+        if key in _BOOL_OPTIONS and value.lower() not in _BOOL_VALUES
+    ]
 
 
 class FeynmanRenderer(RendererHTML):
@@ -321,12 +369,16 @@ class FeynmanRenderer(RendererHTML):
         # Read the SVG at render time (the collector holds the filesystem); a
         # missing file / no collector yields None, which becomes a placeholder.
         src = spec.get("src")
-        svg_text = (
-            self._collector.read_text(src)
-            if self._collector is not None and src
-            else None
-        )
-        return figures.render_figure_open(info, svg_text, marker=marker)
+        svg_text = None
+        reason = None
+        if self._collector is not None and src:
+            svg_text = self._collector.read_text(src)
+            # A binary file (a PNG named as a figure src) is a different mistake
+            # from a missing path; pass that through so the placeholder says so
+            # rather than sending the author hunting for a file that is there.
+            if svg_text is None and src in self._collector.undecodable:
+                reason = "is not text (a raster image cannot be inlined)"
+        return figures.render_figure_open(info, svg_text, marker=marker, reason=reason)
 
     def container_figure_close(self, tokens, idx, options, env):
         return figures.render_figure_close()
@@ -440,6 +492,14 @@ def render_document(
     sources = _collect_executable_sources(tokens)
     cell_opts = [_cell_options(s)[0] for s in sources]
     exec_sources = [_cell_options(s)[1] for s in sources]
+
+    # Report a boolean option we could not read *before* running anything: one of
+    # them is ``allow-error``, so a typo there decides whether the next loop is
+    # allowed to stay quiet about a traceback.
+    for cell_source in sources:
+        for warning in _cell_option_warnings(cell_source):
+            diagnostics.warn(warning, source=source)
+
     cell_results = execute_cells(exec_sources)
 
     # A cell that raised is captured (its traceback is baked into the page), but
@@ -453,8 +513,18 @@ def render_document(
                 source=source,
             )
 
-    md.renderer = FeynmanRenderer(
+    renderer = FeynmanRenderer(
         cell_results, collector=collector, targets=targets, current_url=current_url
     )
-    body = md.renderer.render(tokens, md.options, {})
+    # Some plugins install their render rules on the renderer *instance* that
+    # existed when ``make_md()`` ran (``MarkdownIt.add_render_rule`` binds to
+    # ``md.renderer``), so swapping in ours would drop them and their tokens would
+    # fall through to ``renderToken`` -- emitting empty ``<>`` tags. Carry those
+    # rules across, rebound to the new renderer. Our own overrides win: a rule we
+    # define is already in ``renderer.rules`` and is not replaced.
+    for name, rule in md.renderer.rules.items():
+        if name not in renderer.rules:
+            renderer.rules[name] = rule.__get__(renderer)
+    md.renderer = renderer
+    body = renderer.render(tokens, md.options, {})
     return doc, body

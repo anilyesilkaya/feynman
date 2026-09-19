@@ -77,3 +77,35 @@ def test_query_and_fragment_stripped(tmp_path):
     rewritten = c.resolve("figures/plot.png?v=2#frag")
     assert rewritten.startswith("data:image/png;base64,")
     assert c.missing == []
+
+
+# --- read_text: inlining an external asset into the page body --------------
+def test_read_text_returns_file_contents(tmp_path):
+    (tmp_path / "a.svg").write_text("<svg/>", encoding="utf-8")
+    c = AssetCollector(tmp_path, tmp_path / "out", inline=False)
+    assert c.read_text("a.svg") == "<svg/>"
+    assert c.missing == [] and c.undecodable == []
+
+
+def test_read_text_missing_file_recorded(tmp_path):
+    c = AssetCollector(tmp_path, tmp_path / "out", inline=False)
+    assert c.read_text("nope.svg") is None
+    assert c.missing == ["nope.svg"]
+    assert c.undecodable == []
+
+
+def test_read_text_binary_file_is_undecodable_not_missing(tmp_path):
+    # A PNG handed to :::figure is the commonest way to reach this path. It used
+    # to raise UnicodeDecodeError out of the build; now it is reported as what it
+    # is, and kept apart from `missing` so nobody hunts for a file that exists.
+    _make_source(tmp_path)
+    c = AssetCollector(tmp_path, tmp_path / "out", inline=False)
+    assert c.read_text("figures/plot.png") is None
+    assert c.undecodable == ["figures/plot.png"]
+    assert c.missing == []
+
+
+def test_read_text_remote_ref_is_not_fetched(tmp_path):
+    c = AssetCollector(tmp_path, tmp_path / "out", inline=False)
+    assert c.read_text("https://example.com/a.svg") is None
+    assert c.missing == ["https://example.com/a.svg"]

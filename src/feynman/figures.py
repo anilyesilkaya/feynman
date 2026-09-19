@@ -198,7 +198,9 @@ def _prepare_svg(svg_text: str | None, themed: bool) -> tuple[str, bool]:
     return inject_root_attrs(normalized, themed=themed), True
 
 
-def render_figure_open(info: str, svg_text: str | None, marker: str = "") -> str:
+def render_figure_open(
+    info: str, svg_text: str | None, marker: str = "", reason: str | None = None
+) -> str:
     """Return the opening markup for a ``:::figure`` directive.
 
     ``svg_text`` is the resolved SVG source (or ``None`` when the file was not
@@ -209,6 +211,8 @@ def render_figure_open(info: str, svg_text: str | None, marker: str = "") -> str
 
     A missing or non-SVG source degrades to a visible placeholder rather than
     crashing the build; the id still anchors the ``<figure>`` so references resolve.
+    ``reason`` overrides the placeholder's wording when the caller knows something
+    more specific than "not found" -- e.g. a resolved file that is not UTF-8 text.
     """
     spec = parse_figure_params(info)
     fig_id = spec.get("id")
@@ -221,7 +225,8 @@ def render_figure_open(info: str, svg_text: str | None, marker: str = "") -> str
     body, ok = _prepare_svg(svg_text, themed)
     if not ok:
         src = spec.get("src", "")
-        reason = "not found" if svg_text is None else "is not valid SVG"
+        if reason is None:
+            reason = "not found" if svg_text is None else "is not valid SVG"
         body = (
             '<div class="feynman-figure-missing" role="img" '
             f'aria-label="Figure source {reason}">'

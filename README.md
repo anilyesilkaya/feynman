@@ -16,6 +16,12 @@ browser.
 - **Prose + native MathML.** LaTeX (`$inline$` and `$$display$$`) is converted to
   MathML *at build time*, so no maths library ships to the reader. Display
   equations render in a panel with a button to copy the raw LaTeX.
+- **CommonMark, plus the usual extras.** Pipe tables, footnotes (`[^1]`),
+  definition lists, task lists (`- [x]`), strikethrough (`~~gone~~`), and
+  typographic replacement (`--` → –, `...` → …, straight quotes → curly). Code
+  spans and fences are never retyped, so a `--flag` in an example stays literal.
+  Bare URLs are *not* auto-linked — write `<https://example.com>` or a normal
+  Markdown link.
 - **Static code blocks.** Highlighted at build time with Pygments, using a
   dual-theme stylesheet so switching light/dark recolours tokens with no runtime
   highlighter. Every card has a copy button.
@@ -139,6 +145,10 @@ fatal, so CI fails instead of publishing a broken page:
 feynman build my-post.md --strict
 ```
 
+Under `--strict` nothing is written: the build stops before publishing the page it
+just diagnosed, so a failed run never leaves a half-built output directory that
+looks like a good one.
+
 A cell that raises on purpose (a tutorial demonstrating an error) opts out with a
 cell option so `--strict` does not fail on it:
 
@@ -148,6 +158,11 @@ cell option so `--strict` does not fail on it:
 1 / 0
 ```
 ````
+
+The boolean cell options — `echo`, `output` and `allow-error` — accept
+`true`/`yes`/`on`/`1` or `false`/`no`/`off`/`0`, in any case. A value that is
+none of those is reported as a diagnostic and the documented default applies,
+rather than being read as "on" because a non-empty string is truthy.
 
 ### Building a searchable collection
 
