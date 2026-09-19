@@ -4,8 +4,8 @@ hero_title: 'Learning structured signals from <em>limited observations.</em>'
 subtitle: A paper-first layout for preprints, technical reports, and research notes — the same feynman engine, dressed as a journal article.
 theme: light
 style: article
-authors: A. Researcher · Example Institute
-date: 16 September 2026
+authors: A. Researcher · The feynman project
+date: 2026-09-16
 version: '1.2'
 abstract: The article theme prioritises the research claim over the narrative. It adds an author/date/version meta row, this dense abstract block, and automatically numbered sections in a narrower measure — while every feynman capability (mathematics, executed code, figures, cross-references) works exactly as it does elsewhere.
 keywords: signal processing · statistical learning · reproducibility
