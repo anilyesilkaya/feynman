@@ -22,11 +22,22 @@ from feynman import crossref, diagnostics
 VIZ_NAME = "viz"
 BOX_NAME = "box"
 FIGURE_NAME = "figure"
+STEP_NAME = "step"
 
 
 def _viz_validate(params: str, *args) -> bool:
     """Match ``::: viz ...`` fences (the token becomes ``container_viz``)."""
     return params.strip().split(" ", 1)[0] == VIZ_NAME
+
+
+def _step_validate(params: str, *args) -> bool:
+    """Match ``::: step ...`` fences (the token becomes ``container_step``).
+
+    A ``::: step`` is a scroll waypoint nested inside a ``:::viz {... scroll}``
+    block; the outer viz uses more colons (``::::``) so the two nest. See
+    :mod:`feynman.directives` for how a step's ``to=`` drives the visualisation.
+    """
+    return params.strip().split(" ", 1)[0] == STEP_NAME
 
 
 def _box_validate(params: str, *args) -> bool:
@@ -56,6 +67,7 @@ def make_md() -> MarkdownIt:
         .use(container_plugin, VIZ_NAME, validate=_viz_validate)
         .use(container_plugin, BOX_NAME, validate=_box_validate)
         .use(container_plugin, FIGURE_NAME, validate=_figure_validate)
+        .use(container_plugin, STEP_NAME, validate=_step_validate)
     )
     # Cross-referencing: `@label` references (an inline rule, before emphasis so
     # it claims the `@`) and explicit `{#sec-...}` heading ids (a core rule after

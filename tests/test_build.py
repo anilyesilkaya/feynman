@@ -67,6 +67,17 @@ def test_viz_component_present(built_html):
     assert '"type":"galton"' in built_html
 
 
+def test_scroll_viz_present(built_html):
+    # The demo's scroll-driven figure sticks in view while its step waypoints
+    # scroll past. The <figure> is flagged for the runtime and carries nested
+    # [data-viz-step] waypoints; the scroll flag itself never leaks into the spec.
+    assert "data-viz-scroll" in built_html
+    assert "feynman-viz-scroll" in built_html
+    assert 'class="fv-sticky"' in built_html
+    assert 'data-viz-step="10"' in built_html
+    assert '"scroll"' not in built_html  # stripped from the client JSON spec
+
+
 def test_callout_boxes_present(built_html):
     # The demo ships one box of each variant; a titled box gets a header row
     # and a titleless one is still marked by its icon.

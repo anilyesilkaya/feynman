@@ -129,11 +129,45 @@ into a bin:
 Every marble takes a random walk, yet the pile converges on the binomial the dashed curve marks. Drag the slider to watch order emerge from independent coin flips.
 :::
 
+### Scroll to drive it {#sec-scroll}
+
+The step need not come from a button. Add a bare `scroll` flag and nest
+`::: step {to=N}` waypoints inside the block: the opening line becomes a caption
+that pins with the figure, while the waypoints scroll past in their own column.
+The figure sticks in view and the drawing eases toward each waypoint's step —
+one step at a time — as the reading line crosses from one waypoint to the next.
+It is the same pure-function-of-a-step engine; only the *input* changes from a
+slider to your scroll position. With JavaScript off the waypoints are ordinary
+paragraphs and the scrubber still works.
+
+:::: viz {type=grid rows=10 cols=10 pattern=causal fps=5 scroll #viz-scroll}
+A causal attention mask, revealed row by row as you read.
+
+::: step {to=0}
+Start at the top. Nothing attends yet — the mask is empty, every cell idle.
+:::
+
+::: step {to=3}
+Scroll on and the first rows fill in. Token 3 can look back at tokens 0–3, but
+no further: the upper triangle stays dark.
+:::
+
+::: step {to=7}
+Two-thirds down the sequence, most of the lower triangle is lit. Each new row
+adds exactly one more visible cell than the last.
+:::
+
+::: step {to=10}
+The full causal mask. Every token attends to itself and all earlier tokens, and
+to none that follow. You drove the whole animation without touching a control.
+:::
+::::
+
 Adding a new shape is adding one renderer to the registry — the play / scrub /
-seek machinery never changes. Note that the five figures above — @viz-grid,
-@viz-radial, @viz-wave, @viz-fourier and @viz-galton — share one figure counter
-with @fig-lengths, so a reader sees a single "Figure N" sequence across executed
-charts and driven visualisations alike.
+seek machinery never changes. Note that the six figures above — @viz-grid,
+@viz-radial, @viz-wave, @viz-fourier, @viz-galton and @viz-scroll — share one
+figure counter with @fig-lengths, so a reader sees a single "Figure N" sequence
+across executed charts and driven visualisations alike.
 
 ## Embedded figures {#sec-figure}
 
@@ -222,8 +256,9 @@ work identically across all of them. Three more ship built in:
   `feynman book` builder (see [below](#sec-search)), which numbers *per chapter*
   ("Figure 3.2") and resolves cross-references across files.
 
-Each links back here, so you can compare the same engine in four different
-dressings. An unrecognised `style:` falls back to this notebook theme.
+The article and spec link back here, so you can compare the same engine in four
+different dressings; the book stands on its own. An unrecognised `style:` falls
+back to this notebook theme.
 
 ## Search across the collection {#sec-search}
 

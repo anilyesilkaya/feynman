@@ -33,6 +33,15 @@ browser.
   integer step, driven by play / prev / next / scrub controls. Ships with
   `grid`, `radial`, `wave`, `fourier` and `galton` types; the type registry
   validates directives at build time, warning on an unknown `type=`.
+- **Scroll-driven visualisations.** Add a bare `scroll` flag to a `:::viz` and
+  nest `::: step {to=N}` waypoints inside the block: the opening line pins as a
+  caption with the figure while the waypoints scroll past in their own column.
+  The figure sticks in view and the drawing eases toward each waypoint's step,
+  one step at a time, as the reading line crosses between them — the reader
+  drives the animation by reading. Same pure-function-of-a-step engine; only the
+  input changes from a slider to the scroll position. It is progressive
+  enhancement: with JavaScript off the waypoints are ordinary paragraphs and the
+  scrubber still works.
 - **Embedded SVG figures.** A `:::figure {src=diagram.svg}` directive inlines an
   external SVG into the page as a captioned, numbered figure — sharing the same
   "Figure N" counter as executed charts and `:::viz` blocks via a `#fig-` id.
@@ -45,6 +54,16 @@ browser.
   alignment follows the usual `:---:` markers, with numeric columns set in
   tabular figures; wide tables scroll with a sticky header. Sorting is
   progressive enhancement — the static table is fully readable with no JS.
+- **Callout boxes.** A `:::box {type=warning title="Heads up"}` sets an aside
+  apart. Three variants — `info` (default), `warning`, `error` — each get their
+  own theme colour and icon; the `title=` is optional. The body is ordinary
+  Markdown, so a box can hold formatting, lists, code and cross-references.
+- **Cross-references.** Give any element a *typed* id — `#eq-` (equation),
+  `#fig-` (figure), `#viz-` (visualisation), `#lst-` (code listing), `#tbl-`
+  (table), `#sec-` (heading) — and write `@label` in prose to get an
+  auto-numbered link ("Figure 3", "Equation 1"). Numbers are assigned at build
+  time in document order, so forward and backward references both resolve and
+  stay correct as the page grows. `fig-` and `viz-` share one "Figure N" counter.
 - **Draw figures in-browser.** `feynman draw` launches the bundled
   [svg-canvas](https://github.com/anilyesilkaya/svg-canvas) editor — a
   zero-dependency SVG drawing tool — on localhost. Draw, export the SVG, and
@@ -230,6 +249,57 @@ so light/dark, code highlighting and all the building blocks work identically.
   numbering, cross-chapter references); usable on a standalone page too.
 
 An unrecognised `style:` falls back to `notebook` with a build warning.
+
+### Visualisations
+
+A `:::viz` directive compiles to a step-driven figure. Pick a `type=`, set its
+parameters, and give it a `#viz-` id to make it a numbered, referenceable
+figure; the text between the fences becomes the caption:
+
+```
+::: viz {type=grid rows=10 cols=10 pattern=diagonal steps=19 fps=5 #viz-grid}
+A wavefront advancing along the diagonal.
+:::
+```
+
+The five built-in types and their main parameters:
+
+| `type=`   | Parameters                        | Step count defaults to |
+|-----------|-----------------------------------|------------------------|
+| `grid`    | `rows` `cols` `pattern` `steps`   | `rows`                 |
+| `radial`  | `rings` `spokes` `steps`          | `spokes`               |
+| `wave`    | `amp` `freq` `steps`              | 24 (fixed)             |
+| `fourier` | `terms` `amp` `freq` `target` `steps` | `terms`            |
+| `galton`  | `rows` `balls` `steps`            | `balls`                |
+
+`fps` sets the autoplay rate; `steps` overrides the per-type default; `grid`
+takes a `pattern` (`causal`, `fill`, `diagonal`, `circle`) and `fourier` a
+`target` (`square`, `sawtooth`, `triangle`). An unknown `type=` warns at build
+time and falls back to the grid renderer.
+
+**Scroll-driven mode.** Add a bare `scroll` flag and nest `::: step {to=N}`
+waypoints inside the block. The opening line pins as a caption with the figure;
+the waypoints scroll past in their own column, and the drawing eases toward each
+one's step as the reading line reaches it — the reader drives the animation by
+scrolling. (Note the nesting: the outer fence uses more colons than the inner
+`::: step` fences.)
+
+```
+:::: viz {type=grid rows=10 cols=10 pattern=causal scroll #viz-mask}
+A causal attention mask, revealed row by row as you read.
+
+::: step {to=0}
+Nothing attends yet — the mask is empty.
+:::
+
+::: step {to=10}
+The full mask: every token attends to itself and all earlier tokens.
+:::
+::::
+```
+
+With JavaScript off, the waypoints are ordinary paragraphs and the scrubber
+still works — so a scroll-driven figure degrades to a normal one.
 
 ### Drawing figures
 

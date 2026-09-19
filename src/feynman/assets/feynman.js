@@ -5,7 +5,9 @@
 //      renders one of several shapes -- a box grid, a radial sweep, a
 //      travelling wave, a Fourier synthesiser, or a Galton board -- driven by
 //      play / prev / next / scrub controls. IntersectionObserver pauses
-//      playback while offscreen.
+//      playback while offscreen. A figure marked data-viz-scroll instead binds
+//      its step to the reader's scroll position: nested [data-viz-step]
+//      waypoints seek the drawing as they pass, so prose drives the animation.
 //   2. the light/dark theme toggle in the header.
 //
 // The single architectural idea: every visualisation is a pure function of an
@@ -564,16 +566,25 @@ class FeynmanViz extends HTMLElement {
     this.playing = false;
     this.timer = null;
     this.build();
-    // Open on a partially-advanced frame so a reader who never presses play
-    // still sees a meaningful picture.
-    const initial = this.spec.start != null ? this.spec.start : Math.round(this.steps * 0.6);
-    this.seek(initial);
+    // A figure marked data-viz-scroll drives its step from the reading position
+    // rather than an opening frame; wire that up and let the first waypoint set
+    // the initial step. Otherwise open on a partially-advanced frame so a reader
+    // who never presses play still sees a meaningful picture.
+    this.scrollFigure = this.closest("[data-viz-scroll]");
+    if (this.scrollFigure) {
+      this.observeScroll();
+    } else {
+      const initial = this.spec.start != null ? this.spec.start : Math.round(this.steps * 0.6);
+      this.seek(initial);
+    }
     this.observe();
   }
 
   disconnectedCallback() {
     this.stop();
     if (this.io) this.io.disconnect();
+    if (this.stepIo) this.stepIo.disconnect();
+    if (this._detachScroll) this._detachScroll();
   }
 
   readSpec() {
@@ -666,6 +677,102 @@ class FeynmanViz extends HTMLElement {
       { threshold: 0.1 }
     );
     this.io.observe(this);
+  }
+
+  // Scroll-driven mode: drive the drawing's step from the reading position,
+  // interpolating *between* the [data-viz-step] waypoints so it advances one step
+  // at a time as the reader scrolls rather than snapping between the waypoints'
+  // target steps. The active waypoint (the last one whose top has crossed a
+  // reading line partway down the viewport) sets the accent; the step is then
+  // eased from its target toward the next waypoint's by how far the reading line
+  // has travelled between them. The drawing and its caption pin together in a
+  // sticky block (CSS) while the waypoints in .fv-scroll-steps scroll past. This
+  // is pure progressive enhancement: with no JS the waypoints are ordinary
+  // paragraphs and the scrubber still works.
+  observeScroll() {
+    const steps = Array.from(
+      this.scrollFigure.querySelectorAll("[data-viz-step]")
+    );
+    if (!steps.length) return;
+    // Autoplay is meaningless when scroll owns the step; hide the play button so
+    // the two input models don't fight. Prev/next/scrub stay usable.
+    if (this.playBtn) this.playBtn.hidden = true;
+
+    // Seek to the first waypoint up front so the opening frame matches the prose
+    // the reader starts on, rather than the generic 60%-advanced default.
+    const stepOf = (el) => Math.max(0, Math.min(this.steps, parseInt(el.dataset.vizStep, 10) || 0));
+    this.seek(stepOf(steps[0]));
+
+    // A rAF-throttled scan picks the active waypoint. IntersectionObserver alone
+    // can't tell us "the last one above the line" without tracking every entry,
+    // so a cheap bounding-box scan on scroll is simpler and exact. We gate the
+    // scans behind an IntersectionObserver so they only run while the figure (or
+    // its waypoints) are near the viewport.
+    let queued = false;
+    const update = () => {
+      queued = false;
+      // Reading line: 55% down the viewport, matching where a sticky figure sits.
+      const line = window.innerHeight * 0.55;
+      // Find the active waypoint (last one whose top is above the line) and its
+      // index, so we can interpolate toward the next one.
+      let activeIdx = 0;
+      for (let i = 0; i < steps.length; i++) {
+        if (steps[i].getBoundingClientRect().top <= line) activeIdx = i;
+      }
+      const active = steps[activeIdx];
+      if (active !== this.activeStep) {
+        if (this.activeStep) this.activeStep.removeAttribute("aria-current");
+        active.setAttribute("aria-current", "true");
+        this.activeStep = active;
+      }
+
+      // Interpolate the step from how far the reading line has travelled from
+      // the active waypoint toward the next, so the drawing steps through the
+      // intermediate frames instead of jumping straight to each target.
+      const from = stepOf(active);
+      const next = steps[activeIdx + 1];
+      let target = from;
+      if (next) {
+        const aTop = active.getBoundingClientRect().top;
+        const nTop = next.getBoundingClientRect().top;
+        const span = nTop - aTop;
+        // Fraction of the gap the reading line has crossed (0 at the active
+        // waypoint, 1 at the next); guard a zero/negative span.
+        const frac = span > 0 ? Math.max(0, Math.min(1, (line - aTop) / span)) : 0;
+        target = Math.round(from + frac * (stepOf(next) - from));
+      }
+      if (target !== this.step) this.seek(target);
+    };
+    const queue = () => {
+      if (!queued) {
+        queued = true;
+        requestAnimationFrame(update);
+      }
+    };
+
+    this.scrollActive = false;
+    const onScroll = () => { if (this.scrollActive) queue(); };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll, { passive: true });
+    this._detachScroll = () => {
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+    };
+
+    // Only listen while the figure region is on (or near) screen.
+    if ("IntersectionObserver" in window) {
+      this.stepIo = new IntersectionObserver(
+        (entries) => {
+          for (const entry of entries) this.scrollActive = entry.isIntersecting;
+          if (this.scrollActive) queue();
+        },
+        { rootMargin: "20% 0px" }
+      );
+      this.stepIo.observe(this.scrollFigure);
+    } else {
+      this.scrollActive = true;
+      queue();
+    }
   }
 }
 

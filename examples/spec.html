@@ -345,6 +345,16 @@ svg { display: block; max-width: 100%; }
 .header-link { font-size: 12px; color: var(--body); padding-block: 8px; }
 .header-link:hover { color: var(--accent); }
 
+/* Home link (collection builds only): icon + label pill matching the header. */
+.home-link {
+  display: inline-flex; align-items: center; gap: 7px;
+  height: 38px; padding-inline: 15px;
+  border: 1px solid var(--line); border-radius: 19px;
+  font-size: 13px; color: var(--ink); text-decoration: none;
+}
+.home-link:hover { background: var(--soft); color: var(--accent); }
+.home-link .icon { width: 15px; height: 15px; }
+
 .icon-button {
   display: inline-flex; align-items: center; justify-content: center;
   width: 38px; height: 38px;
@@ -660,6 +670,38 @@ feynman-viz {
   margin-top: 12px;
 }
 
+/* --- scroll-driven viz (:::viz {... scroll}) -------------------------- */
+/* The drawing AND its caption header (the "Figure N" label + intro prose)
+   share one sticky block, so they pin together and the header never orphans
+   above the figure. Only the ::: step waypoints -- moved into .fv-scroll-steps
+   -- scroll past, each tall enough to give the reader a beat per step. With no
+   JS the sticky positioning is harmless and the waypoints read as normal prose. */
+.feynman-viz-scroll .fv-sticky {
+  position: sticky; top: 12vh; z-index: 1;
+  background: var(--paper);
+}
+/* The pinned caption header sits under the drawing, inside the sticky block. */
+.feynman-viz-scroll .fv-sticky figcaption { margin-top: 12px; }
+.feynman-viz-scroll .fv-scroll-steps { margin-top: 8px; }
+.feynman-viz-scroll .fv-scroll-step {
+  min-height: 46vh;
+  display: flex; flex-direction: column; justify-content: center;
+  font-size: 15px; line-height: 1.7; color: var(--muted);
+  border-left: 2px solid var(--line); padding-left: 16px;
+  transition: color 200ms ease, border-color 200ms ease;
+}
+/* The active waypoint (nearest the reading line) is highlighted so the reader
+   sees which step the drawing is showing. JS sets aria-current on it. */
+.feynman-viz-scroll .fv-scroll-step[aria-current] {
+  border-left-color: var(--accent); color: var(--ink);
+}
+/* Trim the last waypoint's tail so the figure unpins promptly after the final
+   step rather than leaving a long empty scroll gap. */
+.feynman-viz-scroll .fv-scroll-step:last-child { min-height: 30vh; }
+@media (prefers-reduced-motion: reduce) {
+  .fv-cell, .fv-dot, .feynman-viz-scroll .fv-scroll-step { transition: none; }
+}
+
 /* --- embedded figures (:::figure) ------------------------------------ */
 /* An external SVG inlined into the body. Framed like a viz block so the two
    read as one family; the SVG scales to the column width. */
@@ -754,6 +796,108 @@ feynman-viz {
   max-width: calc(100% - 32px);
 }
 .toast:empty { display: none; }
+
+/* --- collection search + listing ------------------------------------- */
+/* The search form is `.js-only`: without JS the static post list stands alone.
+   `.js .js-only` sets inline-flex globally, so re-declare it as a full-width
+   block for this multi-line form. */
+.js .search-form {
+  display: block;
+  width: 100%;
+  max-width: 640px;
+  margin-top: 26px;
+}
+.search-input {
+  width: 100%;
+  box-sizing: border-box;
+  font-family: var(--sans);
+  font-size: 16px;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 13px 16px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.search-input::placeholder { color: var(--muted); }
+.search-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+.search-input:disabled { opacity: 0.6; cursor: not-allowed; }
+.search-status {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  margin: 8px 2px 0;
+  min-height: 1.2em;
+}
+.search-status:empty { display: none; }
+
+.search-layout {
+  /* Breathing room before the footer so the last card never abuts it. */
+  padding-bottom: 72px;
+}
+.post-list {
+  list-style: none;
+  margin: 0 auto;
+  padding: 0;
+  max-width: var(--measure);
+  display: grid;
+  gap: 18px;
+}
+.post-card { margin: 0; }
+.post-card[hidden] { display: none; }
+.post-card-link {
+  display: block;
+  padding: 22px 26px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+}
+.post-card-link:hover,
+.post-card-link:focus-visible {
+  border-color: var(--accent);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px #0000000f;
+}
+.post-date {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 0 0 6px;
+}
+.post-title {
+  font-family: var(--serif);
+  font-size: 24px;
+  line-height: 1.2;
+  color: var(--ink);
+  margin: 0;
+}
+.post-subtitle {
+  color: var(--body);
+  margin: 8px 0 0;
+  line-height: 1.5;
+}
+.post-tags {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.03em;
+  color: var(--accent);
+  margin: 12px 0 0;
+}
+.search-empty {
+  text-align: center;
+  color: var(--muted);
+  margin: 40px 0;
+}
 
 /* --- responsive ------------------------------------------------------ */
 @media (max-width: 1080px) {
@@ -866,7 +1010,9 @@ feynman-viz {
 //      renders one of several shapes -- a box grid, a radial sweep, a
 //      travelling wave, a Fourier synthesiser, or a Galton board -- driven by
 //      play / prev / next / scrub controls. IntersectionObserver pauses
-//      playback while offscreen.
+//      playback while offscreen. A figure marked data-viz-scroll instead binds
+//      its step to the reader's scroll position: nested [data-viz-step]
+//      waypoints seek the drawing as they pass, so prose drives the animation.
 //   2. the light/dark theme toggle in the header.
 //
 // The single architectural idea: every visualisation is a pure function of an
@@ -1425,16 +1571,25 @@ class FeynmanViz extends HTMLElement {
     this.playing = false;
     this.timer = null;
     this.build();
-    // Open on a partially-advanced frame so a reader who never presses play
-    // still sees a meaningful picture.
-    const initial = this.spec.start != null ? this.spec.start : Math.round(this.steps * 0.6);
-    this.seek(initial);
+    // A figure marked data-viz-scroll drives its step from the reading position
+    // rather than an opening frame; wire that up and let the first waypoint set
+    // the initial step. Otherwise open on a partially-advanced frame so a reader
+    // who never presses play still sees a meaningful picture.
+    this.scrollFigure = this.closest("[data-viz-scroll]");
+    if (this.scrollFigure) {
+      this.observeScroll();
+    } else {
+      const initial = this.spec.start != null ? this.spec.start : Math.round(this.steps * 0.6);
+      this.seek(initial);
+    }
     this.observe();
   }
 
   disconnectedCallback() {
     this.stop();
     if (this.io) this.io.disconnect();
+    if (this.stepIo) this.stepIo.disconnect();
+    if (this._detachScroll) this._detachScroll();
   }
 
   readSpec() {
@@ -1527,6 +1682,102 @@ class FeynmanViz extends HTMLElement {
       { threshold: 0.1 }
     );
     this.io.observe(this);
+  }
+
+  // Scroll-driven mode: drive the drawing's step from the reading position,
+  // interpolating *between* the [data-viz-step] waypoints so it advances one step
+  // at a time as the reader scrolls rather than snapping between the waypoints'
+  // target steps. The active waypoint (the last one whose top has crossed a
+  // reading line partway down the viewport) sets the accent; the step is then
+  // eased from its target toward the next waypoint's by how far the reading line
+  // has travelled between them. The drawing and its caption pin together in a
+  // sticky block (CSS) while the waypoints in .fv-scroll-steps scroll past. This
+  // is pure progressive enhancement: with no JS the waypoints are ordinary
+  // paragraphs and the scrubber still works.
+  observeScroll() {
+    const steps = Array.from(
+      this.scrollFigure.querySelectorAll("[data-viz-step]")
+    );
+    if (!steps.length) return;
+    // Autoplay is meaningless when scroll owns the step; hide the play button so
+    // the two input models don't fight. Prev/next/scrub stay usable.
+    if (this.playBtn) this.playBtn.hidden = true;
+
+    // Seek to the first waypoint up front so the opening frame matches the prose
+    // the reader starts on, rather than the generic 60%-advanced default.
+    const stepOf = (el) => Math.max(0, Math.min(this.steps, parseInt(el.dataset.vizStep, 10) || 0));
+    this.seek(stepOf(steps[0]));
+
+    // A rAF-throttled scan picks the active waypoint. IntersectionObserver alone
+    // can't tell us "the last one above the line" without tracking every entry,
+    // so a cheap bounding-box scan on scroll is simpler and exact. We gate the
+    // scans behind an IntersectionObserver so they only run while the figure (or
+    // its waypoints) are near the viewport.
+    let queued = false;
+    const update = () => {
+      queued = false;
+      // Reading line: 55% down the viewport, matching where a sticky figure sits.
+      const line = window.innerHeight * 0.55;
+      // Find the active waypoint (last one whose top is above the line) and its
+      // index, so we can interpolate toward the next one.
+      let activeIdx = 0;
+      for (let i = 0; i < steps.length; i++) {
+        if (steps[i].getBoundingClientRect().top <= line) activeIdx = i;
+      }
+      const active = steps[activeIdx];
+      if (active !== this.activeStep) {
+        if (this.activeStep) this.activeStep.removeAttribute("aria-current");
+        active.setAttribute("aria-current", "true");
+        this.activeStep = active;
+      }
+
+      // Interpolate the step from how far the reading line has travelled from
+      // the active waypoint toward the next, so the drawing steps through the
+      // intermediate frames instead of jumping straight to each target.
+      const from = stepOf(active);
+      const next = steps[activeIdx + 1];
+      let target = from;
+      if (next) {
+        const aTop = active.getBoundingClientRect().top;
+        const nTop = next.getBoundingClientRect().top;
+        const span = nTop - aTop;
+        // Fraction of the gap the reading line has crossed (0 at the active
+        // waypoint, 1 at the next); guard a zero/negative span.
+        const frac = span > 0 ? Math.max(0, Math.min(1, (line - aTop) / span)) : 0;
+        target = Math.round(from + frac * (stepOf(next) - from));
+      }
+      if (target !== this.step) this.seek(target);
+    };
+    const queue = () => {
+      if (!queued) {
+        queued = true;
+        requestAnimationFrame(update);
+      }
+    };
+
+    this.scrollActive = false;
+    const onScroll = () => { if (this.scrollActive) queue(); };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll, { passive: true });
+    this._detachScroll = () => {
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+    };
+
+    // Only listen while the figure region is on (or near) screen.
+    if ("IntersectionObserver" in window) {
+      this.stepIo = new IntersectionObserver(
+        (entries) => {
+          for (const entry of entries) this.scrollActive = entry.isIntersecting;
+          if (this.scrollActive) queue();
+        },
+        { rootMargin: "20% 0px" }
+      );
+      this.stepIo.observe(this.scrollFigure);
+    } else {
+      this.scrollActive = true;
+      queue();
+    }
   }
 }
 
@@ -1752,6 +2003,96 @@ customElements.define("feynman-viz", FeynmanViz);
   };
   if (document.readyState !== "loading") init();
   else document.addEventListener("DOMContentLoaded", init);
+})();
+
+// --- cross-post search -----------------------------------------------------
+// Only the collection listing page (built by `feynman build-all`) carries a
+// [data-feynman-search] form; every other page skips this entirely. The page
+// already lists all posts as links, so search is pure enhancement: we fetch
+// search-index.json, build a MiniSearch index in the browser, and reorder /
+// hide the existing post cards to match the query. With JS off, or if the fetch
+// or the MiniSearch import fails, the full static list simply remains.
+(function initSearch() {
+  const form = document.querySelector("[data-feynman-search]");
+  if (!form) return;
+  const input = form.querySelector("input[type='search']");
+  const status = form.querySelector(".search-status");
+  const list = document.querySelector("[data-feynman-post-list]");
+  const empty = document.querySelector("[data-feynman-search-empty]");
+  if (!input || !list) return;
+
+  // Map each post's url -> its <li>, and remember the authored (date) order so
+  // clearing the query restores it exactly.
+  const cards = Array.from(list.querySelectorAll("[data-post-url]"));
+  const byUrl = new Map(cards.map((li) => [li.dataset.postUrl, li]));
+  const originalOrder = cards.slice();
+
+  const say = (msg) => { if (status) status.textContent = msg; };
+
+  const showAll = () => {
+    for (const li of originalOrder) { li.hidden = false; list.appendChild(li); }
+    if (empty) empty.hidden = true;
+    say("");
+  };
+
+  const showResults = (results) => {
+    const matched = new Set();
+    // Reorder the list to match relevance, then hide the non-matches.
+    results.forEach((r) => {
+      const li = byUrl.get(r.url);
+      if (li) { li.hidden = false; list.appendChild(li); matched.add(li); }
+    });
+    for (const li of originalOrder) if (!matched.has(li)) li.hidden = true;
+    if (empty) empty.hidden = results.length > 0;
+    say(results.length
+      ? `${results.length} result${results.length === 1 ? "" : "s"}.`
+      : "No posts match your search.");
+  };
+
+  // Resolve the search-index.json next to this page (respects sub-path deploys).
+  const indexUrl = new URL("search-index.json", document.baseURI).href;
+
+  let engine = null;      // the built MiniSearch instance, once ready
+  let pending = null;     // a query typed before the index finished loading
+
+  const runQuery = (q) => {
+    const query = q.trim();
+    if (!query) { showAll(); return; }
+    if (!engine) { pending = query; say("Searching…"); return; }
+    // Prefix + fuzzy matching so partial words and small typos still hit.
+    showResults(engine.search(query, { prefix: true, fuzzy: 0.2 }));
+  };
+
+  const load = async () => {
+    try {
+      const [{ default: MiniSearch }, res] = await Promise.all([
+        import("./minisearch.min.js"),
+        fetch(indexUrl),
+      ]);
+      if (!res.ok) throw new Error(`index ${res.status}`);
+      const data = await res.json();
+      engine = new MiniSearch({
+        fields: data.fields,
+        storeFields: data.storeFields,
+        searchOptions: { prefix: true, fuzzy: 0.2 },
+      });
+      engine.addAll(data.docs || []);
+      if (pending !== null) { const q = pending; pending = null; runQuery(q); }
+    } catch (_e) {
+      // Leave the full static list in place; disable the box so it can't mislead.
+      input.disabled = true;
+      say("Search is unavailable; browse the full list below.");
+    }
+  };
+
+  let timer;
+  input.addEventListener("input", () => {
+    clearTimeout(timer);
+    timer = setTimeout(() => runQuery(input.value), 120);
+  });
+  // Load the index eagerly so the first keystroke is responsive.
+  if (document.readyState !== "loading") load();
+  else document.addEventListener("DOMContentLoaded", load);
 })();
 </script>
 </head>
