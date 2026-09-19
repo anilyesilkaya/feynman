@@ -679,11 +679,15 @@ class FeynmanViz extends HTMLElement {
     this.io.observe(this);
   }
 
-  // Scroll-driven mode: seek the drawing to the step of whichever [data-viz-step]
-  // waypoint is currently active (the last one whose top has crossed a reading
-  // line partway down the viewport). The drawing and its caption pin together in
-  // a sticky block (CSS) while the waypoints in .fv-scroll-steps scroll past.
-  // This is pure progressive enhancement: with no JS the waypoints are ordinary
+  // Scroll-driven mode: drive the drawing's step from the reading position,
+  // interpolating *between* the [data-viz-step] waypoints so it advances one step
+  // at a time as the reader scrolls rather than snapping between the waypoints'
+  // target steps. The active waypoint (the last one whose top has crossed a
+  // reading line partway down the viewport) sets the accent; the step is then
+  // eased from its target toward the next waypoint's by how far the reading line
+  // has travelled between them. The drawing and its caption pin together in a
+  // sticky block (CSS) while the waypoints in .fv-scroll-steps scroll past. This
+  // is pure progressive enhancement: with no JS the waypoints are ordinary
   // paragraphs and the scrubber still works.
   observeScroll() {
     const steps = Array.from(
@@ -709,16 +713,34 @@ class FeynmanViz extends HTMLElement {
       queued = false;
       // Reading line: 55% down the viewport, matching where a sticky figure sits.
       const line = window.innerHeight * 0.55;
-      let active = steps[0];
-      for (const el of steps) {
-        if (el.getBoundingClientRect().top <= line) active = el;
+      // Find the active waypoint (last one whose top is above the line) and its
+      // index, so we can interpolate toward the next one.
+      let activeIdx = 0;
+      for (let i = 0; i < steps.length; i++) {
+        if (steps[i].getBoundingClientRect().top <= line) activeIdx = i;
       }
+      const active = steps[activeIdx];
       if (active !== this.activeStep) {
         if (this.activeStep) this.activeStep.removeAttribute("aria-current");
         active.setAttribute("aria-current", "true");
         this.activeStep = active;
       }
-      const target = stepOf(active);
+
+      // Interpolate the step from how far the reading line has travelled from
+      // the active waypoint toward the next, so the drawing steps through the
+      // intermediate frames instead of jumping straight to each target.
+      const from = stepOf(active);
+      const next = steps[activeIdx + 1];
+      let target = from;
+      if (next) {
+        const aTop = active.getBoundingClientRect().top;
+        const nTop = next.getBoundingClientRect().top;
+        const span = nTop - aTop;
+        // Fraction of the gap the reading line has crossed (0 at the active
+        // waypoint, 1 at the next); guard a zero/negative span.
+        const frac = span > 0 ? Math.max(0, Math.min(1, (line - aTop) / span)) : 0;
+        target = Math.round(from + frac * (stepOf(next) - from));
+      }
       if (target !== this.step) this.seek(target);
     };
     const queue = () => {
