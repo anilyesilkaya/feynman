@@ -1,4 +1,5 @@
 {% extends "base.html.j2" -%}
+{% import "meta.html.j2" as meta -%}
 {# Search / listing page for a collection built with `feynman build-all`.
 
    It lists every published post newest-first and, with JavaScript, filters them
@@ -41,7 +42,11 @@
         {%- if post.date %}<p class="post-date">{{ post.date }}</p>{% endif %}
         <h2 class="post-title">{{ post.title }}</h2>
         {%- if post.subtitle %}<p class="post-subtitle">{{ post.subtitle }}</p>{% endif %}
-        {%- if post.keywords %}<p class="post-tags">{{ post.keywords }}</p>{% endif %}
+        {#- The post's own tags, from the shared macro -- the same chips the post
+            itself shows, so a card and the page it links to read as one thing.
+            (The list sits inside the link: <a> takes a transparent content model,
+            which is already why the <h2> above is legal here.) #}
+        {{ meta.tags(post.tags, variant="post") }}
       </a>
     </li>
     {%- endfor %}

@@ -1,9 +1,11 @@
 {% extends "base.html.j2" -%}
+{% import "meta.html.j2" as meta -%}
 {# Book chapter -- one document in an ordered, interconnected collection built
    with `feynman book`. A large chapter folio ("Chapter 3") leads the hero;
    prev/next links (from `nav`) and the pager block are rendered by base.html.j2.
    `chapter` is the chapter number (set by the book builder); a standalone page
-   built with `style: book` simply omits the folio. #}
+   built with `style: book` simply omits the folio. The credit row and tags come
+   from `meta.html.j2`; a chapter shows no version, so that field is left out. #}
 
 {% block footer_note %}Read cover to cover.{% endblock %}
 
@@ -18,12 +20,8 @@
   {%- if subtitle %}
   <p class="feynman-subtitle">{{ subtitle }}</p>
   {%- endif %}
-  {%- if authors or date %}
-  <div class="book-meta">
-    {%- if authors %}<span>{{ authors }}</span>{% endif %}
-    {%- if date %}<span>{{ date }}</span>{% endif %}
-  </div>
-  {%- endif %}
+  {{ meta.credits(authors, date, variant="book") }}
+  {{ meta.tags(tags, variant="book") }}
 </header>
 {% endblock %}
 

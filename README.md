@@ -245,10 +245,30 @@ tagline: Ideas, made understandable.
 theme: light                     # initial colour mode (light | dark)
 style: notebook                  # built-in theme (notebook | article | spec | book)
 source_url: https://…/demo.md    # optional "view source" link in the hero
+authors: A. Author · An Institute  # credit line
+date: 2026-09-16                 # credit line
+version: '1.2'                   # credit line
+tags: [signals, estimation]      # tag chips
 ---
 ```
 
 All fields are optional; only `title` is really needed.
+
+#### Credits and tags
+
+`authors`, `date`, `version` and `tags` render the same way in **every** theme —
+one shared unit, so a document keeps its credit line and its tags when you switch
+`style:`. Each field is independently optional and simply omits its markup when
+absent; a document that sets none gets no extra markup at all.
+
+`tags` accepts a YAML list (`[signals, dsp]`) or one string (`signals, dsp`).
+`keywords` is an accepted alias, including the `·`-separated spelling — the two
+read identically, so either key fills the tag chips, the listing cards and the
+search index.
+
+Themes place the unit where it belongs rather than changing what it says: the
+`article` theme labels the tags "Keywords" and sets them under the abstract, and
+the `book` theme omits `version` (a chapter has none).
 
 ### Built-in themes
 
@@ -259,9 +279,8 @@ so light/dark, code highlighting and all the building blocks work identically.
 - **`notebook`** (default) — hero, sticky table of contents, and prose. The
   original feynman look; the choice when you omit `style`.
 - **`article`** — paper-first, for preprints and technical reports. Adds an
-  author/date/version meta row, an optional `abstract`, and numbered sections
-  in a narrower measure. Reads `authors`, `date`, `version`, `abstract`,
-  `keywords` from the front matter.
+  optional `abstract` and numbered sections in a narrower measure, and labels the
+  shared tags "Keywords", set under the abstract as a paper sets them.
 - **`spec`** — dense reference, for APIs, algorithms, and specifications. Status
   chips in the hero (from a `badges:` list; one reading `Stable` gets a success
   tint), a wider measure, and ruled section heads for fast lookup.

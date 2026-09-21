@@ -6,6 +6,9 @@ theme: light
 kicker: A small notebook, endless possibilities
 tagline: Ideas, made understandable.
 source_url: https://github.com/anilyesilkaya/feynman/blob/main/examples/demo.md
+authors: The feynman project
+date: 2026-09-16
+tags: [mathematics, executed code, visualisation]
 ---
 
 ## Prose and mathematics {#sec-maths}
@@ -247,11 +250,13 @@ text may contain spaces.
 This page uses the default **notebook** theme. A theme sets the page layout and
 typography — chosen with a `style:` key in the front matter — while sharing the
 same tokens, so light/dark, code highlighting and every building block above
-work identically across all of them. Three more ship built in:
+work identically across all of them — including the credit row and tag chips
+above, which come from `authors`, `date`, `version` and `tags` in the front
+matter and render in any theme. Three more ship built in:
 
 - **[Research article](article.html)** (`style: article`) — paper-first, with an
-  author/date/version meta row, an abstract, and numbered sections in a narrower
-  measure. Built for preprints, reports, and research notes.
+  abstract, keywords beneath it, and numbered sections in a narrower measure.
+  Built for preprints, reports, and research notes.
 - **[Reference / specification](spec.html)** (`style: spec`) — dense and
   scannable, with status chips in the hero, a wider measure, and ruled section
   heads. Built for APIs, algorithms, and software documentation.

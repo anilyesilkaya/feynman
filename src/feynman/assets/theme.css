@@ -220,6 +220,38 @@ svg { display: block; max-width: 100%; }
 .hero-source a:hover { color: var(--accent); border-color: var(--accent); }
 .hero-source .icon { width: 14px; height: 14px; }
 
+/* --- document credits and tags --------------------------------------- */
+/* The one styling for the authors/date/version row and the tag chips, matching
+   the one markup in `meta.html.j2`. A theme adds a `<variant>-meta` /
+   `<variant>-tags` class beside these and overrides only what it needs -- these
+   rules are what it inherits, so a new theme gets a usable credit line free. */
+.doc-meta {
+  display: flex; flex-wrap: wrap; gap: 8px 22px;
+  margin: 24px 0 0; font-size: 12px; color: var(--muted);
+}
+.doc-meta strong { color: var(--ink); font-weight: 600; }
+.doc-meta a { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; }
+
+.doc-tags {
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px;
+  margin: 16px 0 0;
+}
+.doc-tags-label {
+  font: 600 11px var(--mono); letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--muted);
+}
+/* The chips themselves: a plain list, stripped of its bullets and indent. */
+.doc-tag-list {
+  display: flex; flex-wrap: wrap; gap: 8px;
+  list-style: none; margin: 0; padding: 0;
+}
+.doc-tag {
+  border: 1px solid var(--line); border-radius: 999px;
+  padding: 4px 11px;
+  font: 11px var(--mono); letter-spacing: 0.03em; color: var(--muted);
+  background: var(--surface);
+}
+
 /* --- notebook layout: sticky TOC + prose ----------------------------- */
 .notebook-layout {
   display: grid;
@@ -763,13 +795,10 @@ feynman-viz {
   margin: 8px 0 0;
   line-height: 1.5;
 }
-.post-tags {
-  font-family: var(--mono);
-  font-size: 11px;
-  letter-spacing: 0.03em;
-  color: var(--accent);
-  margin: 12px 0 0;
-}
+/* A card's tags: the shared chips in the accent ink, so they read as the card's
+   own subject line rather than repeating the muted subtitle beneath. */
+.post-tags { margin-top: 12px; }
+.post-tags .doc-tag { color: var(--accent); background: var(--paper); }
 .search-empty {
   text-align: center;
   color: var(--muted);

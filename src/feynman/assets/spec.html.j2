@@ -1,8 +1,11 @@
 {% extends "base.html.j2" -%}
+{% import "meta.html.j2" as meta -%}
 {# Reference / specification -- dense and scannable: a hero with status badges,
    a wider measure, and bordered section heads for fast lookup. The front-matter
    `badges` key (a list of strings) renders chips; a badge reading "stable" is
-   tinted with the success colour. #}
+   tinted with the success colour. Badges are the spec's own thing -- a status
+   signal, not metadata -- so the shared `meta.html.j2` credit row and tags sit
+   below them rather than mixing in. #}
 
 {% block footer_note %}Designed for fast technical lookup.{% endblock %}
 
@@ -14,12 +17,14 @@
   <p class="feynman-subtitle">{{ subtitle }}</p>
   {%- endif %}
   {%- if badges %}
-  <div class="spec-meta">
+  <div class="spec-badges">
     {%- for badge in badges %}
     <span class="badge{% if badge|lower == 'stable' %} stable{% endif %}">{{ badge }}</span>
     {%- endfor %}
   </div>
   {%- endif %}
+  {{ meta.credits(authors, date, version, variant="spec") }}
+  {{ meta.tags(tags, variant="spec") }}
   {%- if source_url %}
   <p class="hero-source">
     <a href="{{ source_url }}">

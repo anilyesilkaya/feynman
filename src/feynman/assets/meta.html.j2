@@ -1,0 +1,48 @@
+{# Document credit line and tags -- the one definition every theme uses.
+
+   Two macros, both driven entirely by front matter and both safe to call
+   unconditionally: each renders nothing at all when its keys are absent, so a
+   template never needs an `{% if %}` around it.
+
+     {% import "meta.html.j2" as meta %}
+     {{ meta.credits(authors, date, version, source_url, variant="article") }}
+     {{ meta.tags(tags) }}
+
+   `variant` adds a `<variant>-meta` class beside the shared `doc-meta` one, so a
+   theme can adjust spacing or type without redefining the markup -- which is how
+   the article/book meta rows drifted apart in the first place. Every field is
+   independently optional: a document with only `date:` gets a one-item row.
+
+   The pieces are wrapped in a `<span>` each so the flex row gaps them evenly and
+   a screen reader reads them as separate items rather than one run-on line. #}
+
+{%- macro credits(authors="", date="", version="", source_url="", variant="") -%}
+{%- if authors or date or version or source_url -%}
+<div class="doc-meta{% if variant %} {{ variant }}-meta{% endif %}">
+  {%- if authors %}<span class="doc-meta-authors"><strong>{{ authors }}</strong></span>{% endif %}
+  {%- if date %}<span class="doc-meta-date">{{ date }}</span>{% endif %}
+  {%- if version %}<span class="doc-meta-version">Version {{ version }}</span>{% endif %}
+  {%- if source_url %}<span class="doc-meta-source"><a href="{{ source_url }}">Source</a></span>{% endif %}</div>
+{%- endif %}
+{%- endmacro -%}
+
+{#- Tags as chips. `items` is the already-normalised list the build passes
+    (`parse.meta_list` turns a YAML list, a comma-separated string or a
+    middot-separated one into the same thing), so the markup is identical no
+    matter which spelling the author used.
+
+    `label` names the set. It is announced to screen readers always, and printed
+    on screen too when `show_label` is set -- which is how the article theme gets
+    the "Keywords:" a paper expects without a second block of markup. -#}
+{%- macro tags(items, variant="", label="Tags", show_label=false) -%}
+{%- if items -%}
+<div class="doc-tags{% if variant %} {{ variant }}-tags{% endif %}">
+  {%- if show_label %}<strong class="doc-tags-label" aria-hidden="true">{{ label }}:</strong>{% endif %}
+  <ul class="doc-tag-list" aria-label="{{ label }}">
+    {%- for item in items %}
+    <li class="doc-tag">{{ item }}</li>
+    {%- endfor %}
+  </ul>
+</div>
+{%- endif %}
+{%- endmacro -%}

@@ -6,6 +6,10 @@ theme: light
 style: spec
 badges: [Stable, Signal Processing, Since 2.1, 'Updated 2026-09-16']
 source_url: https://github.com/anilyesilkaya/feynman/blob/main/examples/spec.md
+authors: The feynman project
+date: 2026-09-16
+version: '2.1'
+tags: [estimation, api reference, dsp]
 ---
 
 This page is built with `style: spec`. It is a sibling of the

@@ -32,6 +32,10 @@ tagline: Ideas, made understandable.
 # style: notebook           # built-in theme: notebook (default), article, spec
 # hero_title: '{{title}}'   # raw-HTML display heading; allows <br> and <em>
 # source_url: https://…     # adds a "view source" link in the hero
+# authors: A. Author        # credit line — these four render in every theme
+# date: 2026-01-01
+# version: '1.0'
+# tags: [one, two]          # tag chips; also searchable in a collection
 ---
 
 ## Introduction {#sec-intro}

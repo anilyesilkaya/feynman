@@ -52,12 +52,19 @@ def _post(title, *, body="Some prose here.", **meta):
 def site(tmp_path):
     src = tmp_path / "posts"
     src.mkdir()
+    # alpha uses the older `keywords` spelling, beta the canonical `tags`, so one
+    # build covers both routes into a post's tag list.
     (src / "alpha.md").write_text(
         _post("Alpha", date="2026-01-02", keywords="signals", body="Wiener filtering."),
         encoding="utf-8",
     )
     (src / "beta.md").write_text(
-        _post("Beta", date="2026-05-09", body="Galton board and quincunx."),
+        _post(
+            "Beta",
+            date="2026-05-09",
+            tags="galton, probability",
+            body="Galton board and quincunx.",
+        ),
         encoding="utf-8",
     )
     (src / "gamma.md").write_text(
@@ -92,13 +99,18 @@ def test_search_index_shape_and_content(site):
     data = json.loads((out / collection.SEARCH_INDEX_NAME).read_text(encoding="utf-8"))
     assert data["generator"] == "feynman"
     assert "text" in data["fields"]
+    assert "tags" in data["fields"]
     docs = data["docs"]
     assert len(docs) == 3
     assert all("id" in d and "url" in d for d in docs)
     alpha = next(d for d in docs if d["url"] == "alpha.html")
     assert "Wiener" in alpha["text"]
-    assert alpha["keywords"] == "signals"
+    # Tags are a list however the author spelled them: `keywords` here, a
+    # comma-separated `tags` string on beta.
+    assert alpha["tags"] == ["signals"]
     assert alpha["date"] == "2026-01-02"
+    beta = next(d for d in docs if d["url"] == "beta.html")
+    assert beta["tags"] == ["galton", "probability"]
     # The draft is absent from the index.
     assert all(d["title"] != "Secret" for d in docs)
 
@@ -190,7 +202,7 @@ def test_book_is_searchable(site_with_book):
     book = next(d for d in data["docs"] if d["url"] == "my-book/contents.html")
     # Indexed so a search for a chapter title finds the book card.
     assert "Chapter Two" in book["text"]
-    assert book["keywords"] == "book"
+    assert book["tags"] == ["book"]
 
 
 def test_nested_book_contents_links_home_to_listing(site_with_book):
