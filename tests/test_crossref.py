@@ -2,7 +2,12 @@
 
 from __future__ import annotations
 
-from feynman.crossref import collect_targets, dangling_ref_warnings, render_xref
+from feynman.crossref import (
+    SECTION_NUMBER_ATTR,
+    collect_targets,
+    dangling_ref_warnings,
+    render_xref,
+)
 from feynman.parse import make_md
 
 
@@ -120,6 +125,119 @@ def test_section_label_overrides_autoslug():
     assert heading.attrGet("id") == "sec-intro"
     inline = next(t for t in tokens if t.type == "inline")
     assert inline.content == "A Long Heading"
+
+
+# --- section numbering follows the heading hierarchy -----------------------
+# A section number is the one number in the system a reader can *check*: the
+# theme prints it on the heading and the sidebar contents repeats it. So it has to
+# mean position in the hierarchy, not "the Nth labelled section", which is what a
+# flat counter gives and which drifts from the page the moment a document has a
+# subsection or an unlabelled heading.
+def test_heading_carries_its_number_for_the_page_to_display():
+    # The number lives on the heading token, so the theme CSS and the sidebar
+    # display it rather than counting headings for themselves. This attribute is
+    # the contract between the three; everything else here follows from it.
+    tokens = _parse("## A {#sec-a}\n### B {#sec-b}\n## C\n")
+    numbers = [
+        t.attrGet(SECTION_NUMBER_ATTR) for t in tokens if t.type == "heading_open"
+    ]
+    assert numbers == ["1", "1.1", "2"]
+
+
+def test_reference_number_is_the_number_on_the_heading():
+    # The assertion T7 is really about: a reference cannot say "Section 5" while
+    # the heading it points at is printed "3.".
+    tokens = _parse(
+        "## Intro {#sec-intro}\n### Detail {#sec-detail}\n"
+        "## Unlabelled-neighbour\n## Results {#sec-results}\n"
+    )
+    targets, _ = collect_targets(tokens)
+    on_heading = {
+        t.attrGet("id"): t.attrGet(SECTION_NUMBER_ATTR)
+        for t in tokens
+        if t.type == "heading_open"
+    }
+    for label, target in targets.items():
+        # `reference_text` is "Section <n>"; the heading carries the bare "<n>".
+        assert target.reference_text == f"Section {on_heading[label]}"
+
+
+def test_subsections_number_hierarchically():
+    tokens = _parse(
+        "## Intro {#sec-intro}\n### Background {#sec-bg}\n"
+        "### Prior {#sec-prior}\n## Method {#sec-method}\n"
+    )
+    targets, _ = collect_targets(tokens)
+    assert targets["sec-intro"].reference_text == "Section 1"
+    assert targets["sec-bg"].reference_text == "Section 1.1"
+    assert targets["sec-prior"].reference_text == "Section 1.2"
+    # The h2 after two h3s is the *second* section, not the fourth.
+    assert targets["sec-method"].reference_text == "Section 2"
+
+
+def test_unlabelled_headings_still_count():
+    # A flat counter over labelled sections only called this "Section 1", while
+    # every theme and the sidebar called it the third heading.
+    tokens = _parse("## One\n\n## Two\n\n## Third {#sec-c}\n")
+    targets, _ = collect_targets(tokens)
+    assert targets["sec-c"].reference_text == "Section 3"
+
+
+def test_deeper_levels_extend_the_path():
+    tokens = _parse("## A {#sec-a}\n### B {#sec-b}\n#### C {#sec-c}\n")
+    targets, _ = collect_targets(tokens)
+    assert targets["sec-c"].reference_text == "Section 1.1.1"
+
+
+def test_a_skipped_level_still_numbers():
+    # An h4 directly under an h2 is bad structure, not a build error; it has to
+    # land on a well-formed path rather than crash or collide.
+    tokens = _parse("## A {#sec-a}\n#### D {#sec-d}\n")
+    targets, _ = collect_targets(tokens)
+    assert targets["sec-a"].reference_text == "Section 1"
+    assert targets["sec-d"].reference_text == "Section 1.1.1"
+
+
+def test_returning_to_a_shallower_level_resets_the_deeper_one():
+    tokens = _parse(
+        "## A {#sec-a}\n### A1 {#sec-a1}\n## B {#sec-b}\n### B1 {#sec-b1}\n"
+    )
+    targets, _ = collect_targets(tokens)
+    assert targets["sec-b"].reference_text == "Section 2"
+    assert targets["sec-b1"].reference_text == "Section 2.1"
+
+
+def test_flat_document_numbering_is_unchanged():
+    # The common case must read exactly as before: no dotted paths appear just
+    # because the mechanism can produce them.
+    tokens = _parse("## A {#sec-a}\n## B {#sec-b}\n## C {#sec-c}\n")
+    targets, _ = collect_targets(tokens)
+    assert [targets[k].reference_text for k in ("sec-a", "sec-b", "sec-c")] == [
+        "Section 1",
+        "Section 2",
+        "Section 3",
+    ]
+
+
+def test_other_kinds_keep_flat_counters():
+    # Only sections are hierarchical; a figure is "Figure 3" wherever it sits.
+    tokens = _parse(
+        "## A {#sec-a}\n\n::: viz {type=grid #viz-a}\nc\n:::\n\n"
+        "### B {#sec-b}\n\n::: viz {type=grid #viz-b}\nc\n:::\n"
+    )
+    targets, _ = collect_targets(tokens)
+    assert targets["viz-a"].reference_text == "Figure 1"
+    assert targets["viz-b"].reference_text == "Figure 2"
+    assert targets["viz-b"].path is None
+
+
+def test_section_number_matches_the_hierarchy_in_a_book():
+    # Chapter prefix composes with the path: chapter 3, section 1, subsection 1.
+    tokens = _parse("## A {#sec-a}\n### B {#sec-b}\n## C {#sec-c}\n")
+    targets, _ = collect_targets(tokens, chapter=3, chapter_url="ch3.html")
+    assert targets["sec-a"].reference_text == "Section 3.1"
+    assert targets["sec-b"].reference_text == "Section 3.1.1"
+    assert targets["sec-c"].reference_text == "Section 3.2"
 
 
 # --- book (chapter-aware) numbering ----------------------------------------

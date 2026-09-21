@@ -105,6 +105,7 @@ def render_page(
         targets=targets,
         current_url=current_url,
         source=str(source),
+        chapter=chapter,
     )
 
     meta = doc.meta or {}
@@ -162,6 +163,13 @@ def render_page(
 
     for ref in collector.missing:
         diagnostics.warn(f"asset not found: {ref}", source=str(source))
+    for ref in collector.undecodable:
+        diagnostics.warn(
+            f"asset is not UTF-8 text, so it cannot be inlined: {ref}. "
+            f":::figure embeds SVG source; use a Markdown image (![alt](...)) "
+            f"for a raster file.",
+            source=str(source),
+        )
 
     return RenderedPage(
         html=html,
@@ -194,6 +202,12 @@ def build_document(source: Path, out_dir: Path, *, inline: bool = False) -> Path
     page = render_page(source, out_dir, inline=inline)
 
     out_html = out_dir / f"{source.stem}.html"
+    # Under ``--strict`` a diagnostic means this page must not ship. Rendering
+    # above emitted every diagnostic the document can produce, so checking here
+    # -- before the first write -- is what makes strict mode a real gate rather
+    # than a report filed after the broken page is already on disk.
+    if diagnostics.should_abort():
+        return out_html
     out_html.write_text(page.html, encoding="utf-8")
 
     # In portable mode, drop the runtime assets alongside the page. In inline

@@ -181,6 +181,18 @@ def test_render_open_non_svg_text_placeholder():
     assert "feynman-figure-missing" in out
 
 
+def test_render_open_reason_overrides_not_found():
+    # A resolved-but-binary source must not be described as missing: the author
+    # would go looking for a file that is sitting right there.
+    out = render_figure_open(
+        "figure {src=pic.png}", None, reason="is not text (a raster image cannot be inlined)"
+    )
+    assert "feynman-figure-missing" in out
+    assert "not found" not in out
+    assert "raster image" in out
+    assert "pic.png" in out
+
+
 def test_render_open_escapes_id():
     out = render_figure_open('figure {src=a.svg #fig-x}', _SVG)
     # Ids are constrained by the regex, but the attribute is still quote-escaped.

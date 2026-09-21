@@ -40,6 +40,10 @@ class AssetCollector:
     inline: bool
     copied: list[Path] = field(default_factory=list)
     missing: list[str] = field(default_factory=list)
+    #: Refs that resolved to a real file that is not UTF-8 text (a PNG passed to
+    #: ``:::figure``, say). Tracked apart from :attr:`missing` so the build can
+    #: say what is actually wrong instead of "not found" about a file that exists.
+    undecodable: list[str] = field(default_factory=list)
 
     def resolve(self, ref: str) -> str:
         """Rewrite one image ``src`` for the output; see the module docstring."""
@@ -66,6 +70,12 @@ class AssetCollector:
         read straight into the page. A remote/site-absolute ref (we do not fetch
         at build time) or a missing file records a miss in :attr:`missing` and
         returns ``None`` so the caller can degrade gracefully.
+
+        A file that exists but is not UTF-8 text -- a PNG or JPEG handed to
+        ``:::figure``, the commonest way to reach this path by mistake -- is
+        recorded in :attr:`undecodable` instead, and also returns ``None``. The
+        two lists are kept apart so the build reports the real problem: calling a
+        binary file "not found" sends an author looking for a missing path.
         """
         if not ref or ref.startswith(_REMOTE_PREFIXES) or ref.startswith("/"):
             self.missing.append(ref)
@@ -75,7 +85,11 @@ class AssetCollector:
         if not resolved.is_file():
             self.missing.append(ref)
             return None
-        return resolved.read_text(encoding="utf-8")
+        try:
+            return resolved.read_text(encoding="utf-8")
+        except UnicodeDecodeError:
+            self.undecodable.append(ref)
+            return None
 
     def _data_uri(self, path: Path) -> str:
         mime = mimetypes.guess_type(path.name)[0] or "application/octet-stream"

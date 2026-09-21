@@ -176,6 +176,9 @@ def build_all(
     posts: list[Post] = []
     css_layers: set[str] = set()
     owned: list[Path] = []  # every file this build produces, for manifest reconcile
+    # (path, html) pairs held back until every page has rendered; see the strict
+    # gate below the loop.
+    pending_pages: list[tuple[Path, str]] = []
 
     for source in sources:
         # A source whose stem would overwrite a generated artefact (index.html,
@@ -202,7 +205,11 @@ def build_all(
             source, out_dir, inline=False, home_url=LISTING_NAME
         )
         out_html = out_dir / f"{source.stem}.html"
-        out_html.write_text(page.html, encoding="utf-8")
+        # Buffered, not written here: under ``--strict`` a diagnostic from *any*
+        # page must stop the whole site from publishing, and a page rendered
+        # before the offending one would otherwise already be on disk. The
+        # deferred writes happen together at the end of the build.
+        pending_pages.append((out_html, page.html))
         result.pages.append(out_html)
         owned.extend([out_html, *page.media])
         css_layers.update(page.css_files)
@@ -252,6 +259,15 @@ def build_all(
     # stable, so we sort undated-last first, then dated-descending on top of it.
     posts.sort(key=lambda p: p.date, reverse=True)
     posts.sort(key=lambda p: p.date == "")
+
+    # Strict gate: every page (and every nested book) has now rendered, so this
+    # is the last moment before the site lands on disk. Bail with the result so
+    # far -- the CLI reports the diagnostics and exits nonzero -- rather than
+    # publishing a site we have already diagnosed as broken.
+    if diagnostics.should_abort():
+        return result
+    for path, html in pending_pages:
+        path.write_text(html, encoding="utf-8")
 
     result.index = _write_index(out_dir, posts)
     result.listing = _write_listing(
@@ -473,6 +489,9 @@ def build_book(
     # Pass 2: render each chapter against the book-wide map, with prev/next nav.
     css_layers: set[str] = set()
     owned: list[Path] = []
+    # Chapters are buffered so ``--strict`` can refuse to publish a half-book: a
+    # diagnostic in chapter 4 must not leave chapters 1-3 on disk.
+    pending_pages: list[tuple[Path, str]] = []
     for i, chapter in enumerate(chapters):
         nav = {}
         if i > 0:
@@ -491,10 +510,19 @@ def build_book(
             chapter=chapter.number,
         )
         out_html = out_dir / chapter.url
-        out_html.write_text(page.html, encoding="utf-8")
+        pending_pages.append((out_html, page.html))
         result.pages.append(out_html)
         owned.extend([out_html, *page.media])
         css_layers.update(page.css_files)
+
+    # Strict gate: every chapter has rendered and emitted its diagnostics, so
+    # stop here rather than publishing a book we know is broken. ``result.pages``
+    # is already populated, so the CLI reports the diagnostics and exits nonzero
+    # instead of "no chapters built".
+    if diagnostics.should_abort():
+        return result
+    for path, html in pending_pages:
+        path.write_text(html, encoding="utf-8")
 
     book_title = title or _title_from_dirname(source_dir) or "Contents"
     result.title = book_title

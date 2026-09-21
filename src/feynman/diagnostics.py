@@ -66,6 +66,17 @@ class DiagnosticCollector:
         return self.strict and bool(self.items)
 
 
+def should_abort() -> bool:
+    """True when the active session is strict *and* has already reported something.
+
+    Lets a builder stop between rendering and writing, so ``--strict`` fails
+    without first publishing the broken page it just diagnosed. Rendering emits
+    every diagnostic a document can produce, so by the time a writer consults
+    this the verdict is final for that document.
+    """
+    return current().should_fail()
+
+
 # The sink used when no session is active: prints, records nothing, never fatal.
 # This is what an ordinary ``build_document`` call outside the CLI hits, so
 # library use is unchanged.

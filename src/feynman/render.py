@@ -97,7 +97,7 @@ _TABLE_OPTION_CLASSES = {
 }
 
 
-def _table_open(token: Token, target: Target | None) -> str:
+def _table_open(token: Token, target: Target | None, caption_html: str = "") -> str:
     """Open a table: a ``<figure>`` wrapper, optional caption, scroll container.
 
     A ``{#tbl-...}`` id (attached by ``attrs_block_plugin``) moves onto the
@@ -106,6 +106,11 @@ def _table_open(token: Token, target: Target | None) -> str:
     (``sortable`` / ``striped`` / ``compact``) are namespaced onto the ``<table>``
     for the stylesheet and the sort enhancer; the default ``thead``/``tbody`` cell
     rendering (including alignment styles) is left untouched.
+
+    ``caption_html`` is the author's ``caption=`` text, already rendered from
+    Markdown by the caller (which owns the parser). A caption needs no id: a table
+    can be described without being numbered, so either alone produces a
+    ``<figcaption>`` and both together produce "Table 1. The text".
     """
     author_classes = (token.attrGet("class") or "").split()
     table_classes = ["feynman-table"] + [
@@ -114,12 +119,19 @@ def _table_open(token: Token, target: Target | None) -> str:
     class_attr = " ".join(dict.fromkeys(table_classes))
 
     id_attr = ""
-    caption = ""
+    label = ""
     if target is not None:
         id_attr = f' id="{escape(target.label, quote=True)}"'
+        label = f'<span class="feynman-fig-label">{escape(target.marker)}</span>'
+
+    caption = ""
+    if label or caption_html:
+        # A separator only when both parts are present, so a caption-only table
+        # does not open with a stray full stop.
+        sep = ". " if label and caption_html else ""
         caption = (
             '<figcaption class="feynman-table-caption">'
-            f'<span class="feynman-fig-label">{escape(target.marker)}</span>'
+            f"{label}{sep}{caption_html}"
             "</figcaption>"
         )
 
@@ -139,31 +151,79 @@ def _collect_executable_sources(tokens: list[Token]) -> list[str]:
     return [t.content for t in tokens if t.type == "fence" and _is_executable(t.info)]
 
 
-def _cell_options(source: str) -> tuple[dict, str]:
-    """Split leading ``#| key: value`` option lines from a cell's source.
+#: Cell options whose value steers behaviour rather than being carried as text.
+#: Kept explicit so an unrecognised value can be *rejected* for these keys only
+#: -- an unknown key such as ``fig-cap`` still passes through as a string.
+_BOOL_OPTIONS = frozenset({"echo", "output", "allow-error"})
+_TRUE_VALUES = frozenset({"true", "yes", "on", "1"})
+_FALSE_VALUES = frozenset({"false", "no", "off", "0"})
+_BOOL_VALUES = _TRUE_VALUES | _FALSE_VALUES
 
-    Boolean options understood: ``echo`` (show the source, default true),
-    ``output`` (show the captured output, default true), and ``allow-error``
-    (default false) which marks a raising cell as intentional so ``--strict``
-    does not fail on its traceback. ``label`` sets a stable ``id`` on the cell
-    for linking. Unknown options are ignored but still stripped from the
-    displayed source.
+
+def _option_lines(source: str) -> tuple[list[tuple[str, str]], str]:
+    """Split the leading ``#| key: value`` lines off a cell; ``(pairs, code)``.
+
+    Values come back verbatim, because the two callers need different things
+    from them: :func:`_cell_options` folds case and coerces, while
+    :func:`_cell_option_warnings` must be able to tell ``no`` from ``false``.
     """
-    opts: dict = {}
+    pairs: list[tuple[str, str]] = []
     lines = source.splitlines()
     i = 0
     while i < len(lines) and lines[i].lstrip().startswith("#|"):
         directive = lines[i].split("#|", 1)[1].strip()
         if ":" in directive:
             key, _, value = directive.partition(":")
-            key, value = key.strip(), value.strip()
-            # Only fold case for the bool test, so a `label` keeps its casing.
-            if value.lower() in ("true", "false"):
-                opts[key] = value.lower() == "true"
-            else:
-                opts[key] = value
+            pairs.append((key.strip(), value.strip()))
         i += 1
-    return opts, "\n".join(lines[i:])
+    return pairs, "\n".join(lines[i:])
+
+
+def _cell_options(source: str) -> tuple[dict, str]:
+    """Split leading ``#| key: value`` option lines from a cell's source.
+
+    Boolean options understood: ``echo`` (show the source, default true),
+    ``output`` (show the captured output, default true), and ``allow-error``
+    (default false) which marks a raising cell as intentional so ``--strict``
+    does not fail on its traceback. Each accepts ``true``/``yes``/``on``/``1``
+    or ``false``/``no``/``off``/``0``, in any case. ``label`` sets a stable
+    ``id`` on the cell for linking. Unknown options are ignored but still
+    stripped from the displayed source.
+
+    A boolean option given an unrecognised value is left *unset*, so the
+    documented default applies. Keeping the raw string instead is how
+    ``#| allow-error: no`` came to mean "yes": every non-empty string is truthy,
+    so the option silently disarmed the ``--strict`` check it names.
+    :func:`_cell_option_warnings` reports the value so the typo is visible.
+    """
+    opts: dict = {}
+    pairs, code = _option_lines(source)
+    for key, value in pairs:
+        if key not in _BOOL_OPTIONS:
+            opts[key] = value  # carried as text; `label` keeps its casing
+        elif value.lower() in _TRUE_VALUES:
+            opts[key] = True
+        elif value.lower() in _FALSE_VALUES:
+            opts[key] = False
+    return opts, code
+
+
+def _cell_option_warnings(source: str) -> list[str]:
+    """Report cell options whose value would otherwise be misread in silence.
+
+    Only the boolean options are checked. They are the ones where a bad value
+    used to *change behaviour* rather than merely be carried along, and where the
+    author's intent is unambiguous enough to call the value a mistake. An
+    unrecognised *key* stays silent on purpose: ``#| fig-cap:`` and friends are
+    accepted for forward compatibility and an author may annotate a cell freely.
+    """
+    accepted = ", ".join(sorted(_BOOL_VALUES))
+    return [
+        f"cell option {key!r} expects a boolean, got {value!r}; ignoring it "
+        f"and using the default. Accepted: {accepted}."
+        for key, value in _option_lines(source)[0]
+        if key in _BOOL_OPTIONS and value.lower() not in _BOOL_VALUES
+    ]
 
 
 class FeynmanRenderer(RendererHTML):
@@ -175,6 +235,7 @@ class FeynmanRenderer(RendererHTML):
         collector: AssetCollector | None = None,
         targets: dict[str, Target] | None = None,
         current_url: str = "",
+        parser=None,
     ):
         super().__init__()
         self._cells = cell_results
@@ -182,9 +243,36 @@ class FeynmanRenderer(RendererHTML):
         self._collector = collector
         self._targets = targets or {}
         self._current_url = current_url
+        # The parser, kept so a caption carried in a token *attribute* (rather
+        # than as inner tokens) can still be rendered as Markdown -- see
+        # :meth:`_render_caption`. Optional so a renderer can be built bare in a
+        # unit test; a caption then falls back to escaped plain text.
+        self._parser = parser
         # Per-viz scroll-mode state (set in container_viz_open); see there.
         self._viz_scroll = False
         self._viz_steps_opened = False
+
+    def _render_caption(self, text: str, options, env) -> str:
+        """Render caption text (from a token attribute) as inline Markdown.
+
+        A ``:::viz`` or ``:::figure`` caption is the directive *body*, so it
+        arrives as inner tokens and markdown-it renders it for free. A table's
+        caption cannot work that way -- a line inside the table would be parsed as
+        a row -- so it rides in on the ``{caption="..."}`` attribute as a raw
+        string. Rendering it here is what keeps the two kinds of caption equal:
+        emphasis, code spans, maths and ``@ref`` links all work in both.
+
+        Without a parser (a bare renderer in a unit test) the text is escaped and
+        emitted as-is, so a caption is never dropped and never injects markup.
+        """
+        if not text:
+            return ""
+        if self._parser is None:
+            return escape(text)
+        tokens = self._parser.parseInline(text, env)
+        return "".join(
+            self.renderInline(t.children, options, env) for t in tokens if t.children
+        ).strip()
 
     # --- maths -------------------------------------------------------------
     def math_inline(self, tokens, idx, options, env):
@@ -321,12 +409,16 @@ class FeynmanRenderer(RendererHTML):
         # Read the SVG at render time (the collector holds the filesystem); a
         # missing file / no collector yields None, which becomes a placeholder.
         src = spec.get("src")
-        svg_text = (
-            self._collector.read_text(src)
-            if self._collector is not None and src
-            else None
-        )
-        return figures.render_figure_open(info, svg_text, marker=marker)
+        svg_text = None
+        reason = None
+        if self._collector is not None and src:
+            svg_text = self._collector.read_text(src)
+            # A binary file (a PNG named as a figure src) is a different mistake
+            # from a missing path; pass that through so the placeholder says so
+            # rather than sending the author hunting for a file that is there.
+            if svg_text is None and src in self._collector.undecodable:
+                reason = "is not text (a raster image cannot be inlined)"
+        return figures.render_figure_open(info, svg_text, marker=marker, reason=reason)
 
     def container_figure_close(self, tokens, idx, options, env):
         return figures.render_figure_close()
@@ -346,7 +438,8 @@ class FeynmanRenderer(RendererHTML):
     def table_open(self, tokens, idx, options, env):
         token = tokens[idx]
         target = self._targets.get(token.attrGet("id") or "")
-        return _table_open(token, target)
+        caption = self._render_caption(token.attrGet("caption") or "", options, env)
+        return _table_open(token, target, caption)
 
     def table_close(self, tokens, idx, options, env):
         return _table_close()
@@ -385,6 +478,7 @@ def render_document(
     targets: dict[str, Target] | None = None,
     current_url: str = "",
     source: str | None = None,
+    chapter: int | None = None,
 ) -> tuple[Document, str]:
     """Parse and render a document; return metadata and HTML body.
 
@@ -401,8 +495,17 @@ def render_document(
 
     ``source`` is the document's path, attached to any diagnostic emitted here so
     a reader can find the offending file.
+
+    ``chapter`` is this page's chapter number in a book build; it prefixes the
+    section numbers printed on headings so they match the "Section 3.1" that a
+    reference to them renders.
     """
     doc, md, tokens = parse_document(text, source=source)
+
+    # In a book, headings carry the chapter prefix too, matching the numbering a
+    # reference to them shows.
+    if chapter is not None:
+        crossref.prefix_heading_numbers(tokens, chapter)
 
     # Warn once, at build time, about any viz directive naming an unknown type
     # (the reader would silently fall back to the grid renderer otherwise).
@@ -440,6 +543,14 @@ def render_document(
     sources = _collect_executable_sources(tokens)
     cell_opts = [_cell_options(s)[0] for s in sources]
     exec_sources = [_cell_options(s)[1] for s in sources]
+
+    # Report a boolean option we could not read *before* running anything: one of
+    # them is ``allow-error``, so a typo there decides whether the next loop is
+    # allowed to stay quiet about a traceback.
+    for cell_source in sources:
+        for warning in _cell_option_warnings(cell_source):
+            diagnostics.warn(warning, source=source)
+
     cell_results = execute_cells(exec_sources)
 
     # A cell that raised is captured (its traceback is baked into the page), but
@@ -453,8 +564,22 @@ def render_document(
                 source=source,
             )
 
-    md.renderer = FeynmanRenderer(
-        cell_results, collector=collector, targets=targets, current_url=current_url
+    renderer = FeynmanRenderer(
+        cell_results,
+        collector=collector,
+        targets=targets,
+        current_url=current_url,
+        parser=md,
     )
-    body = md.renderer.render(tokens, md.options, {})
+    # Some plugins install their render rules on the renderer *instance* that
+    # existed when ``make_md()`` ran (``MarkdownIt.add_render_rule`` binds to
+    # ``md.renderer``), so swapping in ours would drop them and their tokens would
+    # fall through to ``renderToken`` -- emitting empty ``<>`` tags. Carry those
+    # rules across, rebound to the new renderer. Our own overrides win: a rule we
+    # define is already in ``renderer.rules`` and is not replaced.
+    for name, rule in md.renderer.rules.items():
+        if name not in renderer.rules:
+            renderer.rules[name] = rule.__get__(renderer)
+    md.renderer = renderer
+    body = renderer.render(tokens, md.options, {})
     return doc, body

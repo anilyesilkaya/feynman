@@ -134,6 +134,60 @@ def test_theme_layers_inlined_in_single_file(tmp_path):
     assert "article-layout" in html  # from theme-article.css
 
 
+# --- section numbers: one authority, displayed in three places -------------
+# The number on a heading, the number a `@sec-` reference renders and the number
+# the sidebar contents shows have to be the same string. They are, because only
+# one of them is *computed*: the build stamps `data-section-number` on the heading,
+# the theme CSS prints that attribute with `content: attr(...)`, and feynman.js
+# reads it for the sidebar. These tests guard that wiring; the numbering itself is
+# covered in test_crossref.py.
+_NESTED = (
+    "\n## Intro {#sec-intro}\n\nSee @sec-detail and @sec-last.\n"
+    "\n### Detail {#sec-detail}\n\nText.\n"
+    "\n## Unlabelled neighbour\n\nText.\n"
+    "\n## Last {#sec-last}\n\nText.\n"
+)
+
+
+@pytest.mark.parametrize("name", list(THEMES))
+def test_headings_carry_their_number_in_every_theme(tmp_path, name):
+    # The attribute ships regardless of theme: a theme decides whether to *print*
+    # a number, never what it is. So the sidebar agrees with the prose everywhere,
+    # even where no number appears on the heading itself.
+    src = _write(tmp_path, f"title: T\nstyle: {name}", _NESTED)
+    html = build_document(src, tmp_path / "out").read_text(encoding="utf-8")
+    # The unlabelled h2 is section 2, so "Last" is 3 -- not 2, which is what a
+    # counter over labelled sections only would have said.
+    for label, number in (("sec-intro", "1"), ("sec-detail", "1.1"), ("sec-last", "3")):
+        assert f'id="{label}" data-section-number="{number}"' in html
+    # And the references in the prose quote those same numbers back.
+    assert 'href="#sec-detail">Section 1.1</a>' in html
+    assert 'href="#sec-last">Section 3</a>' in html
+
+
+def test_article_prints_the_stamped_number_not_its_own_count(tmp_path):
+    # The article theme is the one that shows numbers on headings. It must print
+    # the attribute rather than run a CSS counter, which counted only the headings
+    # it had rules for -- so a document with subsections showed "3." on a heading
+    # the prose called "Section 5".
+    src = _write(tmp_path, "title: Paper\nstyle: article", _NESTED)
+    out = tmp_path / "out"
+    build_document(src, out)
+    css = (out / "theme-article.css").read_text(encoding="utf-8")
+    assert "content: attr(data-section-number)" in css
+    assert "counter-increment" not in css
+
+
+def test_sidebar_reads_the_stamped_number(tmp_path):
+    src = _write(tmp_path, "title: T", _NESTED)
+    out = tmp_path / "out"
+    build_document(src, out)
+    js = (out / "feynman.js").read_text(encoding="utf-8")
+    # The contents list is driven by the attribute, so it cannot drift from it.
+    assert "[id][data-section-number]" in js
+    assert "h.dataset.sectionNumber" in js
+
+
 # --- example docs: the three themes build together and cross-link ----------
 
 

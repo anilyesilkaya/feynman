@@ -14,8 +14,11 @@ from markdown_it import MarkdownIt
 from mdit_py_plugins.anchors import anchors_plugin
 from mdit_py_plugins.attrs import attrs_block_plugin, attrs_plugin
 from mdit_py_plugins.container import container_plugin
+from mdit_py_plugins.deflist import deflist_plugin
 from mdit_py_plugins.dollarmath import dollarmath_plugin
+from mdit_py_plugins.footnote import footnote_plugin
 from mdit_py_plugins.front_matter import front_matter_plugin
+from mdit_py_plugins.tasklists import tasklists_plugin
 
 from feynman import crossref, diagnostics
 
@@ -51,10 +54,30 @@ def _figure_validate(params: str, *args) -> bool:
 
 
 def make_md() -> MarkdownIt:
-    """Return the configured MarkdownIt instance used for all documents."""
+    """Return the configured MarkdownIt instance used for all documents.
+
+    The dialect is CommonMark plus a deliberate set of extensions: pipe tables,
+    footnotes, definition lists, task lists, strikethrough and typographic
+    replacements, on top of this project's own directives. ``typographer: True``
+    only *permits* the replacement rules -- the ``commonmark`` preset leaves
+    ``replacements``/``smartquotes`` disabled -- so they are enabled explicitly
+    below or an author's ``--`` and ``"quotes"`` reach the reader verbatim.
+
+    ``linkify`` is deliberately *not* enabled: it needs the optional
+    ``linkify-it-py`` package, and ``enable("linkify")`` raises at import when it
+    is absent. Bare URLs stay unlinked; an author writes ``<https://x>`` or a
+    normal Markdown link.
+    """
     md = (
-        MarkdownIt("commonmark", {"html": True, "linkify": True, "typographer": True})
+        MarkdownIt("commonmark", {"html": True, "typographer": True})
         .enable("table")
+        # ``--`` -> en dash, ``...`` -> ellipsis, and curly quotes. Disabled by
+        # the commonmark preset, so passing ``typographer`` alone is not enough.
+        .enable(["replacements", "smartquotes"])
+        .enable("strikethrough")
+        .use(footnote_plugin)
+        .use(deflist_plugin)
+        .use(tasklists_plugin)
         .use(front_matter_plugin)
         .use(dollarmath_plugin, double_inline=True)
         .use(attrs_plugin)
@@ -74,6 +97,10 @@ def make_md() -> MarkdownIt:
     # `anchor`, so an author's section label overrides the auto-slug).
     md.inline.ruler.before("emphasis", "xref", crossref.xref_rule)
     md.core.ruler.after("anchor", "section_id", crossref.section_id_rule)
+    # Section numbers, computed once here and stamped on each heading token. The
+    # theme CSS and the sidebar contents display this number rather than counting
+    # headings again, so the three can never disagree.
+    md.core.ruler.after("section_id", "section_number", crossref.number_headings)
     return md
 
 

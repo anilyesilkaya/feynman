@@ -16,6 +16,12 @@ browser.
 - **Prose + native MathML.** LaTeX (`$inline$` and `$$display$$`) is converted to
   MathML *at build time*, so no maths library ships to the reader. Display
   equations render in a panel with a button to copy the raw LaTeX.
+- **CommonMark, plus the usual extras.** Pipe tables, footnotes (`[^1]`),
+  definition lists, task lists (`- [x]`), strikethrough (`~~gone~~`), and
+  typographic replacement (`--` → –, `...` → …, straight quotes → curly). Code
+  spans and fences are never retyped, so a `--flag` in an example stays literal.
+  Bare URLs are *not* auto-linked — write `<https://example.com>` or a normal
+  Markdown link.
 - **Static code blocks.** Highlighted at build time with Pygments, using a
   dual-theme stylesheet so switching light/dark recolours tokens with no runtime
   highlighter. Every card has a copy button.
@@ -49,8 +55,10 @@ browser.
   ink/paper-toned strokes and fills to follow the light/dark theme.
 - **Interactive tables.** Ordinary Markdown pipe tables. A `{...}` line *above* a
   table opts into extras: `.sortable` makes columns click-to-sort (numeric
-  columns sort by value, others by text), `.striped` / `.compact` restyle it, and
-  a `#tbl-` id gives it a "Table N" caption you reference with `@tbl-`. Column
+  columns sort by value, others by text), `.striped` / `.compact` restyle it,
+  `caption="..."` describes it in Markdown (emphasis, code spans, maths and
+  `@refs` all work), and a `#tbl-` id gives it a "Table N" caption you reference
+  with `@tbl-`. Caption and id are independent — either alone works. Column
   alignment follows the usual `:---:` markers, with numeric columns set in
   tabular figures; wide tables scroll with a sticky header. Sorting is
   progressive enhancement — the static table is fully readable with no JS.
@@ -64,6 +72,11 @@ browser.
   auto-numbered link ("Figure 3", "Equation 1"). Numbers are assigned at build
   time in document order, so forward and backward references both resolve and
   stay correct as the page grows. `fig-` and `viz-` share one "Figure N" counter.
+  Sections number by their position in the heading hierarchy — the second `###`
+  under the second `##` is "Section 2.2" — counting every heading, labelled or
+  not. That number is computed once and is the same one the `article` theme
+  prints on the heading and the sidebar contents shows, so a reference and the
+  page can't disagree. In a book it carries the chapter: "Section 3.1".
 - **Draw figures in-browser.** `feynman draw` launches the bundled
   [svg-canvas](https://github.com/anilyesilkaya/svg-canvas) editor — a
   zero-dependency SVG drawing tool — on localhost. Draw, export the SVG, and
@@ -139,6 +152,10 @@ fatal, so CI fails instead of publishing a broken page:
 feynman build my-post.md --strict
 ```
 
+Under `--strict` nothing is written: the build stops before publishing the page it
+just diagnosed, so a failed run never leaves a half-built output directory that
+looks like a good one.
+
 A cell that raises on purpose (a tutorial demonstrating an error) opts out with a
 cell option so `--strict` does not fail on it:
 
@@ -148,6 +165,11 @@ cell option so `--strict` does not fail on it:
 1 / 0
 ```
 ````
+
+The boolean cell options — `echo`, `output` and `allow-error` — accept
+`true`/`yes`/`on`/`1` or `false`/`no`/`off`/`0`, in any case. A value that is
+none of those is reported as a diagnostic and the documented default applies,
+rather than being read as "on" because a non-empty string is truthy.
 
 ### Building a searchable collection
 

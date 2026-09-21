@@ -17,6 +17,12 @@ analogous to ``VIZ_TYPES`` in :mod:`feynman.directives`.
 Two counters intentionally coincide: ``fig-`` (a figure from a ``{python}`` cell)
 and ``viz-`` (a ``:::viz`` block) share the *figures* counter, so a reader sees
 one continuous "Figure N" sequence across both kinds of picture.
+
+Sections are the exception to "numbered here": their numbers are also *shown* on
+the page -- printed on the heading by the theme and repeated in the sidebar
+contents -- so :func:`number_headings` computes each heading's number once, onto
+the token, and the theme CSS and ``feynman.js`` display that value rather than
+counting headings again. See its docstring for why.
 """
 
 from __future__ import annotations
@@ -85,13 +91,28 @@ class Target:
     #: The page URL the target lives on, for cross-file references ("" = same
     #: page, so the reference stays a bare ``#anchor``).
     chapter_url: str = ""
+    #: For a section only: its position in the heading hierarchy, e.g. ``(2, 1)``
+    #: for the first ``###`` under the second ``##``, as read back from the
+    #: heading token that :func:`number_headings` stamped. Figures, equations,
+    #: tables and listings run on flat counters and leave this ``None``, keeping
+    #: :attr:`number` the whole story for them.
+    path: tuple[int, ...] | None = None
 
     @property
     def _number_text(self) -> str:
-        """The bare number a reference/marker shows: ``2`` or ``3.2`` in a book."""
+        """The bare number a reference/marker shows: ``2``, ``2.1``, ``3.2``.
+
+        A section reads as its position in the heading hierarchy, because that is
+        what the reader can see -- the number a theme prints on the heading and
+        the sidebar contents repeats, both taken from the same
+        :data:`SECTION_NUMBER_ATTR` this path came from. A flat running count over
+        labelled sections only, which is what this used to be, matched neither as
+        soon as a document had a subsection or an unlabelled heading.
+        """
+        base = ".".join(str(n) for n in self.path) if self.path else str(self.number)
         if self.chapter is None:
-            return str(self.number)
-        return f"{self.chapter}.{self.number}"
+            return base
+        return f"{self.chapter}.{base}"
 
     @property
     def reference_text(self) -> str:
@@ -139,6 +160,71 @@ def parse_cell_label(source: str) -> str | None:
     return None
 
 
+#: The attribute :func:`number_headings` writes and everything else reads.
+SECTION_NUMBER_ATTR = "data-section-number"
+
+
+def number_headings(state) -> None:
+    """Core rule: stamp every heading with its position in the hierarchy.
+
+    This is *the* section-numbering authority. A section number is the one number
+    in the system a reader can check against the page, because it is printed on
+    the heading and repeated in the sidebar contents -- so all three places have
+    to say the same thing. They used to compute it independently (a counter here,
+    a CSS ``counter()`` in the article theme, a loop in ``feynman.js``), which
+    agreed only for a flat document and drifted apart as soon as one appeared
+    with subsections, an unlabelled heading, or an ``h4``. Now the number is
+    computed once, written onto the token as :data:`SECTION_NUMBER_ATTR`, and
+    merely *displayed* by the theme CSS and the sidebar.
+
+    Every heading is counted, labelled or not: skip the unlabelled ones and
+    "Section 3" starts meaning the fourth heading on the page.
+    """
+    # A stack of per-level counts: ``[2, 1]`` means the first ``###`` of the
+    # second ``##``.
+    path: list[int] = []
+    for token in state.tokens:
+        if token.type != "heading_open":
+            continue
+        level = int(token.tag[1:]) if token.tag[1:].isdigit() else 2
+        # ``h2`` is depth 1: by convention ``#`` is the page title, so a document
+        # of ``##`` sections numbers 1, 2, 3 rather than 2.1, 2.2.
+        depth = max(1, level - 1)
+        if depth > len(path):
+            # A skipped level (an ``h4`` straight under an ``h2``) still has to
+            # land somewhere; pad with 1s to keep the path well-formed.
+            path.extend([1] * (depth - len(path) - 1))
+            path.append(1)
+        else:
+            del path[depth:]
+            path[depth - 1] += 1
+        token.attrSet(SECTION_NUMBER_ATTR, ".".join(str(n) for n in path))
+
+
+def heading_path(token: Token) -> tuple[int, ...] | None:
+    """Read back the path :func:`number_headings` stamped on a heading token."""
+    raw = token.attrGet(SECTION_NUMBER_ATTR)
+    if not raw:
+        return None
+    return tuple(int(n) for n in str(raw).split(".") if n.isdigit())
+
+
+def prefix_heading_numbers(tokens: list[Token], chapter: int) -> None:
+    """Prefix every stamped heading number with its chapter, in place.
+
+    In a book, :attr:`Target.reference_text` reads "Section 3.1" -- chapter 3,
+    section 1 -- so the number printed on the heading and shown in the sidebar has
+    to carry the chapter too, or a reader follows "Section 3.1" to a heading
+    labelled "1".
+    """
+    for token in tokens:
+        if token.type != "heading_open":
+            continue
+        local = token.attrGet(SECTION_NUMBER_ATTR)
+        if local:
+            token.attrSet(SECTION_NUMBER_ATTR, f"{chapter}.{local}")
+
+
 def collect_targets(
     tokens: list[Token], *, chapter: int | None = None, chapter_url: str = ""
 ) -> tuple[dict[str, Target], list[str]]:
@@ -154,12 +240,16 @@ def collect_targets(
     cross-chapter reference resolves against. Standalone builds pass neither,
     reproducing the flat "Figure 1" numbering. Counters are local to this call,
     so each chapter restarts its figures/equations/... at 1.
+
+    Section numbers are *not* counted here: :func:`number_headings` already put
+    each heading's path on its token, and this reads it back, so a reference and
+    the heading it points at cannot disagree.
     """
     targets: dict[str, Target] = {}
     warnings: list[str] = []
     counters: dict[str, int] = {}
 
-    def register(label: str | None) -> None:
+    def register(label: str | None, path: tuple[int, ...] | None = None) -> None:
         if not label:
             return
         # A label whose prefix is not a cross-reference kind is a plain anchor
@@ -174,15 +264,18 @@ def collect_targets(
             return
         number = counters.get(kind.counter, 0) + 1
         counters[kind.counter] = number
-        targets[label] = Target(label, kind, number, chapter, chapter_url)
+        targets[label] = Target(label, kind, number, chapter, chapter_url, path)
 
     for tok in tokens:
         if tok.type == "math_block_label":
             register(tok.info.strip())
         elif tok.type == "heading_open":
+            # ``number_headings`` has already stamped this token with its path, so
+            # the number a reference shows is literally the one printed on the
+            # heading. Only a ``sec-`` id makes the heading referenceable.
             hid = tok.attrGet("id")
             if hid and _prefix_of(hid) == "sec":
-                register(hid)
+                register(hid, heading_path(tok))
         elif tok.type == "fence":
             if tok.info.strip() == _EXECUTABLE_INFO:
                 register(parse_cell_label(tok.content))

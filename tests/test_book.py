@@ -86,6 +86,17 @@ def test_chapter_folio_present(book):
     assert 'data-style="book"' in alpha
 
 
+def test_heading_number_carries_the_chapter(book):
+    # A reference reads "Section 1.1" (chapter 1, section 1), so the number the
+    # page prints on that heading -- and repeats in the sidebar -- has to carry the
+    # chapter too, or the reader follows "Section 1.1" to a heading marked "1".
+    _, out, _ = book
+    zeta = (out / "zeta.html").read_text(encoding="utf-8")
+    assert 'id="sec-start" data-section-number="1.1"' in zeta
+    alpha = (out / "alpha.html").read_text(encoding="utf-8")
+    assert 'id="sec-mid" data-section-number="2.1"' in alpha
+
+
 # --- cross-chapter references ----------------------------------------------
 def test_cross_chapter_reference_links_to_other_page(book):
     _, out, _ = book

@@ -415,6 +415,15 @@ svg { display: block; max-width: 100%; }
 .contents a span { font: 10px var(--mono); opacity: 0.8; }
 .contents a:hover { color: var(--accent); }
 .contents a[aria-current="location"] { color: var(--accent); border-color: var(--accent); }
+/* A sub-heading sits under its section: indented by depth, a shade quieter and
+   tighter, so the list still reads as an outline rather than a flat run. The
+   depth comes from the stamped section number ("2.1" -> depth 2), so the
+   indentation matches the number shown beside it. */
+.contents .contents-sub a {
+  padding-top: 7px; padding-bottom: 7px; padding-left: 30px;
+  font-size: 11px; opacity: 0.85;
+}
+.contents .contents-depth-3 a { padding-left: 42px; opacity: 0.75; }
 
 /* --- prose ----------------------------------------------------------- */
 .feynman-prose { min-width: 0; max-width: 815px; }
@@ -443,6 +452,37 @@ svg { display: block; max-width: 100%; }
 .feynman-prose strong { color: var(--ink); font-weight: 600; }
 .feynman-prose ul, .feynman-prose ol { color: var(--body); padding-left: 1.3rem; }
 .feynman-prose li { margin: 0.4rem 0; }
+/* Strikethrough (`~~text~~`): a retraction, so it recedes rather than shouts. */
+.feynman-prose s, .feynman-prose del { color: var(--muted); }
+/* Definition lists (`Term` / `:   definition`): the term carries the weight, the
+   body is indented under it -- a glossary, which is what authors reach for. */
+.feynman-prose dl { margin: 0 0 20px; color: var(--body); }
+.feynman-prose dt { margin-top: 16px; color: var(--ink); font-weight: 600; }
+.feynman-prose dd { margin: 4px 0 0 1.3rem; line-height: 1.85; }
+/* Task lists (`- [x] done`): the checkbox replaces the marker, so drop the
+   bullet and pull the row back into the measure. Checkboxes ship disabled -- the
+   state is authored in the source, not toggled by the reader. */
+.feynman-prose .task-list-item { list-style: none; margin-left: -1.3rem; }
+.feynman-prose .task-list-item input[type="checkbox"] {
+  margin-right: 0.5rem;
+  accent-color: var(--accent);
+}
+/* Footnotes: the reference is a superscript link, the definitions a smaller
+   block at the foot of the prose. The plugin emits its own `<hr
+   class="footnotes-sep">` *before* the section; we hide it and use a border on
+   the section instead, so the rule matches the measure and the print rules. */
+.feynman-prose .footnote-ref { font-size: 0.8em; font-variant-numeric: normal; }
+.feynman-prose .footnote-ref a { text-decoration: none; }
+.feynman-prose .footnotes-sep { display: none; }
+.feynman-prose .footnotes {
+  margin: 48px 0 0; padding-top: 20px;
+  border-top: 1px solid var(--line);
+  font-size: 0.9em; color: var(--muted);
+}
+.feynman-prose .footnotes-list { padding-left: 1.3rem; }
+.feynman-prose .footnote-item { margin: 0.6rem 0; }
+.feynman-prose .footnote-item p { margin: 0 0 8px; line-height: 1.7; }
+.feynman-prose .footnote-backref { text-decoration: none; margin-left: 4px; }
 .feynman-prose hr { height: 1px; border: 0; background: var(--line); margin: 48px 0; }
 .feynman-prose blockquote {
   margin: 24px 0; padding: 4px 0 4px 20px;
@@ -460,6 +500,16 @@ svg { display: block; max-width: 100%; }
 .feynman-prose .feynman-table-figure { margin: 24px 0; }
 .feynman-prose .feynman-table-caption {
   margin-bottom: 8px; font: 0.85rem var(--sans); color: var(--muted);
+  /* A caption now carries prose, not just the "Table N" label, so it has to wrap
+     and lead like a sentence rather than sit on one line. */
+  line-height: 1.6;
+}
+/* Caption prose is Markdown, so it can contain a code span -- which the prose
+   rule sets in accent-on-tint at 0.87em. At caption size that reads as a shout;
+   quiet it down and let it wrap with the text. */
+.feynman-prose .feynman-table-caption code {
+  font-size: 0.95em; background: none; color: inherit;
+  padding: 0; white-space: normal;
 }
 .feynman-prose .feynman-table-scroll {
   /* Wide tables scroll horizontally rather than overflowing the measure. A
@@ -1935,21 +1985,39 @@ customElements.define("feynman-viz", FeynmanViz);
 })();
 
 // --- table of contents + reading progress ---------------------------------
-// The page ships with an empty <ol> in the sidebar; we fill it from the h2s so
-// the document stays the single source of truth for its own structure.
+// The page ships with an empty <ol> in the sidebar; we fill it from the headings
+// so the document stays the single source of truth for its own structure.
+//
+// The number shown against each entry is read from the heading's
+// `data-section-number`, which the build computed once -- not counted again here.
+// That is what makes "Section 2.1" in the prose, "2.1." printed on the heading
+// and "2.1" in this sidebar the same section by construction; three independent
+// counts agreed only until a document had a subsection or an unlabelled heading.
+// Sub-headings are listed (indented) rather than skipped -- a reference can point
+// at one, and a reader who follows it should be able to find where they are.
 (function initContents() {
   const list = document.querySelector(".contents ol");
   const aside = document.querySelector(".contents");
-  const headings = Array.from(document.querySelectorAll(".feynman-prose h2[id]"));
+  // Keyed on the stamped number, not on tag names: every numbered heading is
+  // listed, and only numbered headings are, so this list and the numbers printed
+  // on the page are the same set.
+  const headings = Array.from(
+    document.querySelectorAll(".feynman-prose [id][data-section-number]")
+  );
   const links = [];
 
   if (list && headings.length) {
-    headings.forEach((h, i) => {
+    headings.forEach((h) => {
+      const number = h.dataset.sectionNumber;
+      const depth = number.split(".").length;
       const li = document.createElement("li");
+      if (depth > 1) li.className = `contents-sub contents-depth-${Math.min(depth, 3)}`;
       const a = document.createElement("a");
       a.href = `#${h.id}`;
       const num = document.createElement("span");
-      num.textContent = String(i + 1).padStart(2, "0");
+      // Top-level sections keep the zero-padded "01" look; a subsection shows
+      // its path ("2.1") verbatim, which is exactly what the reference says.
+      num.textContent = depth === 1 ? number.padStart(2, "0") : number;
       a.append(num, document.createTextNode(h.textContent));
       li.append(a);
       list.append(li);
@@ -2208,18 +2276,18 @@ customElements.define("feynman-viz", FeynmanViz);
 <a href="article.html">research article</a> (the <code>article</code> theme). The status chips above
 come from the front-matter <code>badges:</code> list; the one reading <strong>Stable</strong> picks up
 the success tint.</p>
-<h2 id="sec-summary">Summary</h2>
+<h2 id="sec-summary" data-section-number="1">Summary</h2>
 <p>Estimates a desired sequence from noisy observations using second-order
 statistics. Put the one-paragraph contract first: what the thing does, its
 scope, and the single most important constraint. The spec theme uses a wider
 measure and rules each section head, so a reader can scan clauses quickly.</p>
-<h2 id="sec-syntax">Syntax</h2>
+<h2 id="sec-syntax" data-section-number="2">Syntax</h2>
 <p>A fenced block is highlighted at build time — a specimen to read, with a copy
 button:</p>
 <figure class="feynman-code" data-lang="python" id="lst-call"><figcaption class="code-toolbar"><span class="code-label"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m8 7-5 5 5 5m8-10 5 5-5 5m-3-13-2 16"/></svg>python<small>Listing 1</small></span><button type="button" class="copy-button js-only" aria-label="Copy code"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V4H4v12h4"/></svg>Copy</button></figcaption><div class="highlight"><pre><span></span><span class="n">xhat</span> <span class="o">=</span> <span class="n">wiener_estimate</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">H</span><span class="p">,</span> <span class="n">noise_variance</span><span class="p">)</span>
 <span class="n">xhat</span> <span class="o">=</span> <span class="n">wiener_estimate</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">H</span><span class="p">,</span> <span class="n">noise_variance</span><span class="p">,</span> <span class="n">regularization</span><span class="o">=</span><span class="mf">1e-8</span><span class="p">)</span>
 </pre></div>
-</figure><h2 id="sec-params">Parameters</h2>
+</figure><h2 id="sec-params" data-section-number="3">Parameters</h2>
 <p><a class="feynman-xref" href="#tbl-params">Table 1</a> lists the call arguments. Click a column header to sort — the table
 opts into that with a <code>{.sortable #tbl-params}</code> line above it.</p>
 <figure class="feynman-table-figure" id="tbl-params"><figcaption class="feynman-table-caption"><span class="feynman-fig-label">Table 1</span></figcaption><div class="feynman-table-scroll"><table class="feynman-table feynman-table-sortable"><thead>
@@ -2251,13 +2319,13 @@ opts into that with a <code>{.sortable #tbl-params}</code> line above it.</p>
 <td>Optional numerical stabilisation term.</td>
 </tr>
 </tbody>
-</table></div></figure><h2 id="sec-algorithm">Algorithm</h2>
+</table></div></figure><h2 id="sec-algorithm" data-section-number="4">Algorithm</h2>
 <p>State the model, then give the governing expression without burying it in prose:</p>
 <div class="equation-panel" id="eq-wiener"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><mrow><mover accent="true"><mrow><mi>x</mi></mrow><mo>&#x0005E;</mo></mover><mo>&#x0003D;</mo><mo stretchy="false">&#x00028;</mo><msup><mi>H</mi><mrow><mi>H</mi></mrow></msup><mi>H</mi><mo>&#x0002B;</mo><msup><mi>&#x003C3;</mi><mrow><mn>2</mn></mrow></msup><mi>I</mi><msup><mo stretchy="false">&#x00029;</mo><mrow><mo>&#x02212;</mo><mn>1</mn></mrow></msup><msup><mi>H</mi><mrow><mi>H</mi></mrow></msup><mi>y</mi></mrow></math><span class="equation-number">(1)</span><button type="button" class="equation-copy js-only" data-latex="\hat{x} = (H^{H} H + \sigma^{2} I)^{-1} H^{H} y" aria-label="Copy LaTeX source"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V4H4v12h4"/></svg></button></div><p><a class="feynman-xref" href="#eq-wiener">Equation 1</a> is the minimum-mean-square-error estimate under a linear-Gaussian
 model.</p>
 <div class="feynman-box feynman-box-warning" role="note"><div class="feynman-box-title"><span class="feynman-box-icon" aria-hidden="true"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><rect x="11" y="9" width="2" height="5" rx="1" fill="currentColor" stroke="none"/><circle cx="12" cy="17" r="1.35" fill="currentColor" stroke="none"/></svg></span><span>Numerical note</span></div><p>In implementations, solve the linear system directly rather than forming an
 explicit matrix inverse.</p>
-</div><h2 id="sec-notes">Notes and limitations</h2>
+</div><h2 id="sec-notes" data-section-number="5">Notes and limitations</h2>
 <ul>
 <li>Document dimensional assumptions explicitly.</li>
 <li>Separate normative requirements from explanatory notes.</li>
