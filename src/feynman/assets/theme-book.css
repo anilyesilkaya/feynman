@@ -21,10 +21,9 @@
   font-size: clamp(38px, 5vw, 60px); line-height: 1.08; max-width: 720px;
 }
 .book-hero .feynman-subtitle { margin-top: 18px; font-family: var(--serif); font-style: italic; }
-.book-meta {
-  display: flex; flex-wrap: wrap; gap: 6px 20px;
-  margin-top: 22px; font-size: 12px; color: var(--muted); font-family: var(--mono);
-}
+/* Credit row: the shared `.doc-meta` in theme.css, set in the mono face and
+   tucked in a little so it reads as a colophon under a serif title. */
+.book-meta { gap: 6px 20px; margin-top: 22px; font-family: var(--mono); }
 
 /* Layout: a generous single measure with the in-chapter contents to the side. */
 .book-layout {

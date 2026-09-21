@@ -7,7 +7,7 @@ style: article
 authors: A. Researcher · The feynman project
 date: 2026-09-16
 version: '1.2'
-abstract: The article theme prioritises the research claim over the narrative. It adds an author/date/version meta row, this dense abstract block, and automatically numbered sections in a narrower measure — while every feynman capability (mathematics, executed code, figures, cross-references) works exactly as it does elsewhere.
+abstract: The article theme prioritises the research claim over the narrative. It adds this dense abstract block, keywords set beneath it, and automatically numbered sections in a narrower measure — while every feynman capability (mathematics, executed code, figures, cross-references) works exactly as it does elsewhere, and the credit row above comes from the same front matter any theme reads.
 keywords: signal processing · statistical learning · reproducibility
 source_url: https://github.com/anilyesilkaya/feynman/blob/main/examples/article.md
 ---

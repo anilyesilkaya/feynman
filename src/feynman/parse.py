@@ -7,6 +7,7 @@ of the resulting token stream lives in :mod:`feynman.render`.
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 
 import yaml
@@ -110,6 +111,36 @@ class Document:
 
     meta: dict
     body: str
+
+
+def meta_text(value: object) -> str:
+    """Coerce a front-matter scalar (str/int/date) to a trimmed string.
+
+    YAML gives us ``date: 2026-09-16`` as a ``datetime.date`` and ``version: 2``
+    as an ``int``; templates want text either way. ``None`` (a key written with no
+    value) becomes ``""``, which every template treats as absent.
+    """
+    return "" if value is None else str(value).strip()
+
+
+def meta_list(value: object) -> list[str]:
+    """Coerce a front-matter value to a list of trimmed strings.
+
+    Authors write a list (``tags: [signals, dsp]``) or an inline string
+    (``tags: signals, dsp`` -- and, historically for ``keywords``, a
+    ``·``-separated run). All three read the same way here, so a template never
+    has to care which spelling a document used. Empty entries are dropped, so a
+    trailing comma cannot produce a blank chip.
+    """
+    if value is None:
+        return []
+    if isinstance(value, (list, tuple)):
+        items = [meta_text(v) for v in value]
+    else:
+        # Split on the separators authors actually use, including the middot that
+        # the `keywords` examples in this repo are written with.
+        items = re.split(r"[,;·]", meta_text(value))
+    return [item.strip() for item in items if item.strip()]
 
 
 def split_front_matter(text: str, *, source: str | None = None) -> Document:

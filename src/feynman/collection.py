@@ -28,7 +28,7 @@ from html.parser import HTMLParser
 from pathlib import Path
 
 from feynman import build, crossref, diagnostics, manifest, render
-from feynman.parse import split_front_matter
+from feynman.parse import meta_text, split_front_matter
 
 # Front-matter key that keeps a post out of the build entirely.
 DRAFT_KEY = "draft"
@@ -80,21 +80,20 @@ def html_to_text(html: str) -> str:
     return parser.text
 
 
-def _as_text(value: object) -> str:
-    """Coerce a front-matter scalar (str/int/date) to a trimmed string."""
-    return "" if value is None else str(value).strip()
-
-
 @dataclass
 class Post:
-    """One built post's metadata, as it appears in the index and the listing."""
+    """One built post's metadata, as it appears in the index and the listing.
+
+    The fields mirror the front-matter keys the page templates read, so a card on
+    the listing shows the same credits and tags as the post it links to.
+    """
 
     url: str
     title: str
     subtitle: str = ""
     date: str = ""
     authors: str = ""
-    keywords: str = ""
+    tags: list[str] = field(default_factory=list)
     text: str = ""
 
     def index_record(self) -> dict:
@@ -105,7 +104,7 @@ class Post:
             "subtitle": self.subtitle,
             "date": self.date,
             "authors": self.authors,
-            "keywords": self.keywords,
+            "tags": self.tags,
             "text": self.text,
         }
 
@@ -217,11 +216,13 @@ def build_all(
         posts.append(
             Post(
                 url=out_html.name,
-                title=_as_text(page.meta.get("title")) or source.stem,
-                subtitle=_as_text(page.meta.get("subtitle")),
-                date=_as_text(page.meta.get("date")),
-                authors=_as_text(page.meta.get("authors")),
-                keywords=_as_text(page.meta.get("keywords")),
+                title=meta_text(page.meta.get("title")) or source.stem,
+                subtitle=meta_text(page.meta.get("subtitle")),
+                date=meta_text(page.meta.get("date")),
+                authors=meta_text(page.meta.get("authors")),
+                # Same resolution the page templates use, so a post tagged with
+                # either `tags` or the older `keywords` lists and searches alike.
+                tags=build.doc_tags(page.meta),
                 text=html_to_text(page.body),
             )
         )
@@ -247,7 +248,7 @@ def build_all(
                 url=f"{book_dir.name}/{CONTENTS_NAME}",
                 title=book.title,
                 subtitle=f"A {len(book.chapters)}-chapter book.",
-                keywords="book",
+                tags=["book"],
                 text=chapter_text,
             )
         )
@@ -300,8 +301,10 @@ def _write_index(out_dir: Path, posts: list[Post]) -> Path:
     payload = {
         "generator": "feynman",
         # MiniSearch indexes these fields; the client stores the rest for display.
-        "fields": ["title", "subtitle", "keywords", "authors", "text"],
-        "storeFields": ["url", "title", "subtitle", "date", "authors", "keywords"],
+        # A list field indexes fine: MiniSearch stringifies it and then splits on
+        # punctuation, so ``["signals", "dsp"]`` yields both terms.
+        "fields": ["title", "subtitle", "tags", "authors", "text"],
+        "storeFields": ["url", "title", "subtitle", "date", "authors", "tags"],
         "docs": [{"id": i, **p.index_record()} for i, p in enumerate(posts)],
     }
     path = out_dir / SEARCH_INDEX_NAME
@@ -448,8 +451,8 @@ def build_book(
             source=source,
             number=i + 1,
             url=f"{source.stem}.html",
-            title=_as_text(meta.get("title")) or source.stem,
-            subtitle=_as_text(meta.get("subtitle")),
+            title=meta_text(meta.get("title")) or source.stem,
+            subtitle=meta_text(meta.get("subtitle")),
         )
         for i, (source, meta, _text) in enumerate(ordered)
     ]

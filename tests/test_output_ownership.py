@@ -205,3 +205,51 @@ def test_corrupt_manifest_does_not_crash(tmp_path):
     # A corrupt manifest is treated as empty, not fatal.
     build_document(a, out)
     assert (out / "alpha.html").exists()
+
+
+# --- relative output paths -------------------------------------------------
+# A manifest entry must name a file the same way whichever spelling of ``-o`` the
+# author used, or a rebuild reads its own past entries as files it no longer
+# produces and deletes them. These pin that `-o out` and `-o /abs/out` are one
+# output directory, since `feynman build` is normally run with the relative form.
+def test_relative_out_dir_records_paths_relative_to_it(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    _doc_with_image(tmp_path, "alpha", "a.png")
+    build_document("alpha.md", "out")
+
+    data = json.loads((tmp_path / "out" / manifest.MANIFEST_NAME).read_text("utf-8"))
+    entries = data["owners"]["doc:alpha"]
+    # Not "out/alpha.html": the prefix belongs to the output dir, not the entry.
+    # (The image's name carries a hash of its absolute source path, so match its
+    # folder rather than the generated basename.)
+    assert "alpha.html" in entries
+    assert [e for e in entries if e.startswith("media/") and e.endswith("-a.png")]
+    assert not [e for e in entries if e.startswith("out/")]
+
+
+def test_mixing_relative_and_absolute_out_keeps_the_page(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    _doc_with_image(tmp_path, "alpha", "a.png")
+
+    # The same document, the same output directory, spelled both ways.
+    build_document("alpha.md", tmp_path / "out")
+    build_document("alpha.md", "out")
+
+    # The second build must not reclaim the page and image the first one wrote --
+    # they are the very files it just rewrote.
+    assert (tmp_path / "out" / "alpha.html").exists()
+    assert list((tmp_path / "out" / "media").glob("*.png"))
+
+
+def test_relative_out_dir_still_reclaims_its_own_stale_media(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    a = _doc_with_image(tmp_path, "alpha", "a.png")
+    build_document("alpha.md", "out")
+    assert list((tmp_path / "out" / "media").glob("*.png"))
+
+    # Cleanup keeps working through a relative path: drop the reference and the
+    # image goes, exactly as it does for an absolute one.
+    a.write_text("---\ntitle: alpha\n---\n\nno image\n", encoding="utf-8")
+    build_document("alpha.md", "out")
+    assert not (tmp_path / "out" / "media").exists()
+    assert (tmp_path / "out" / "alpha.html").exists()

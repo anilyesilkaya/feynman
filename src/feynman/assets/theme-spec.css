@@ -8,7 +8,11 @@
 .spec-hero { padding: 44px 0 30px; border-bottom: 1px solid var(--line); }
 .spec-hero .feynman-title { font-size: clamp(36px, 4.5vw, 56px); margin-bottom: 14px; }
 .spec-hero .feynman-subtitle { margin-top: 18px; }
-.spec-meta { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 22px; }
+/* Status badges: the spec's own signal, above the shared credit row. */
+.spec-badges { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 22px; }
+/* The credit row is `.doc-meta` in theme.css; it only needs to sit tighter here,
+   under the badges, than it does leading a hero on its own. */
+.spec-meta { margin-top: 14px; }
 .badge {
   border: 1px solid var(--line); background: var(--surface);
   border-radius: 999px; padding: 5px 10px;

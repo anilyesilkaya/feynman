@@ -1,8 +1,11 @@
 {% extends "base.html.j2" -%}
-{# Research article -- paper-first: a meta row (authors / date / version), an
+{% import "meta.html.j2" as meta -%}
+{# Research article -- paper-first: a credit row (authors / date / version), an
    optional abstract, then numbered sections in a narrow measure. Front-matter
-   keys `authors`, `date`, `version`, `abstract`, `keywords` drive the extras;
-   all are optional and simply omit their markup when absent. #}
+   keys `authors`, `date`, `version`, `abstract`, `tags` drive the extras; all are
+   optional and simply omit their markup when absent. The credit row and the tag
+   chips come from `meta.html.j2`, shared with every other theme; here the tags
+   are labelled "Keywords" and set under the abstract, as a paper sets them. #}
 
 {% block footer_note %}Paper-first scientific communication.{% endblock %}
 
@@ -13,13 +16,11 @@
   {%- if subtitle %}
   <p class="feynman-subtitle">{{ subtitle }}</p>
   {%- endif %}
-  {%- if authors or date or version or source_url %}
-  <div class="article-meta">
-    {%- if authors %}<span><strong>{{ authors }}</strong></span>{% endif %}
-    {%- if date %}<span>{{ date }}</span>{% endif %}
-    {%- if version %}<span>Version {{ version }}</span>{% endif %}
-    {%- if source_url %}<span><a href="{{ source_url }}">Source</a></span>{% endif %}
-  </div>
+  {{ meta.credits(authors, date, version, source_url, variant="article") }}
+  {#- A paper prints its keywords under the abstract, so the hero shows them only
+      when there is no abstract to carry them -- never nowhere. #}
+  {%- if not abstract %}
+  {{ meta.tags(tags, variant="keywords", label="Keywords", show_label=true) }}
   {%- endif %}
 </header>
 {% endblock %}
@@ -37,7 +38,9 @@
     <section class="abstract">
       <h2>Abstract</h2>
       <p>{{ abstract }}</p>
-      {%- if keywords %}<p class="keywords"><strong>Keywords:</strong> {{ keywords }}</p>{% endif %}
+      {#- A paper calls its tags "Keywords" and sets them inside the abstract
+          block; same data and markup as any other theme's tags, relabelled. #}
+      {{ meta.tags(tags, variant="keywords", label="Keywords", show_label=true) }}
     </section>
     {%- endif %}
     {{ body }}

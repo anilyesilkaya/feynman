@@ -1,3 +1,4 @@
+{% import "meta.html.j2" as meta -%}
 <!DOCTYPE html>
 <html lang="en" data-theme="{{ theme }}" data-style="{{ style }}">
 <head>
@@ -80,6 +81,11 @@
       {%- if subtitle %}
       <p class="feynman-subtitle">{{ subtitle }}</p>
       {%- endif %}
+      {#- Credits and tags from the shared macros: a document that sets `authors`,
+          `date`, `version` or `tags` gets them in any theme, including this
+          default one, and a document that sets none gets no extra markup. #}
+      {{ meta.credits(authors, date, version, variant="hero") }}
+      {{ meta.tags(tags, variant="hero") }}
       {%- if source_url %}
       <p class="hero-source">
         <a href="{{ source_url }}">

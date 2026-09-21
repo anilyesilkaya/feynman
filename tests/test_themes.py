@@ -89,7 +89,9 @@ def test_article_chrome_from_front_matter(tmp_path):
     assert "A dense summary." in html
     assert "A. Author" in html
     assert "Version 2.0" in html
+    # A paper labels its tags "Keywords"; same chips, relabelled.
     assert "Keywords:" in html
+    assert '<li class="doc-tag">a</li>' in html
 
 
 def test_article_omits_optional_chrome_when_absent(tmp_path):
@@ -97,7 +99,71 @@ def test_article_omits_optional_chrome_when_absent(tmp_path):
     html = build_document(src, tmp_path / "out").read_text(encoding="utf-8")
     # No abstract block and no meta row when the keys are absent.
     assert 'class="abstract"' not in html
+    assert "doc-meta" not in html
     assert 'class="article-meta"' not in html
+
+
+# --- the shared credits/tags unit ------------------------------------------
+# `meta.html.j2` defines the credit row and the tag chips once, and every theme
+# imports it. So front matter drives the same markup everywhere: a theme chooses
+# where the unit goes and how it looks, never what it contains or whether a key
+# is understood. These tests pin that a *new* theme gets it for free.
+_CREDITED = (
+    "title: T\nauthors: A. Author\ndate: 2026-09-16\nversion: '2.0'\n"
+    "tags: [signals, dsp]"
+)
+
+
+@pytest.mark.parametrize("name", list(THEMES))
+def test_credits_and_tags_render_in_every_theme(tmp_path, name):
+    src = _write(tmp_path, f"{_CREDITED}\nstyle: {name}")
+    html = build_document(src, tmp_path / "out").read_text(encoding="utf-8")
+    assert "A. Author" in html
+    assert "2026-09-16" in html
+    assert '<li class="doc-tag">signals</li>' in html
+    # Each theme tags the shared unit with its own variant class for styling.
+    assert "doc-meta" in html
+
+
+@pytest.mark.parametrize("name", list(THEMES))
+def test_no_meta_markup_when_front_matter_is_bare(tmp_path, name):
+    # The macros are called unconditionally, so they must emit nothing at all
+    # rather than an empty row -- otherwise every untitled page grows a stray box.
+    src = _write(tmp_path, f"title: T\nstyle: {name}")
+    html = build_document(src, tmp_path / "out").read_text(encoding="utf-8")
+    assert "doc-meta" not in html
+    assert "doc-tag" not in html
+
+
+@pytest.mark.parametrize(
+    "front_matter",
+    [
+        "tags: [signals, dsp]",       # a YAML list
+        "tags: signals, dsp",         # one comma-separated string
+        "keywords: signals · dsp",    # the older middot spelling
+    ],
+)
+def test_tag_spellings_all_produce_the_same_chips(tmp_path, front_matter):
+    src = _write(tmp_path, f"title: T\n{front_matter}")
+    html = build_document(src, tmp_path / "out").read_text(encoding="utf-8")
+    assert '<li class="doc-tag">signals</li>' in html
+    assert '<li class="doc-tag">dsp</li>' in html
+
+
+def test_version_and_date_survive_yaml_typing(tmp_path):
+    # Unquoted, YAML hands back `datetime.date` and `int`; both must print.
+    src = _write(tmp_path, "title: T\ndate: 2026-09-16\nversion: 2")
+    html = build_document(src, tmp_path / "out").read_text(encoding="utf-8")
+    assert "2026-09-16" in html
+    assert "Version 2" in html
+
+
+def test_partial_credits_omit_only_the_missing_fields(tmp_path):
+    src = _write(tmp_path, "title: T\ndate: 2026-09-16")
+    html = build_document(src, tmp_path / "out").read_text(encoding="utf-8")
+    assert "doc-meta-date" in html
+    assert "doc-meta-authors" not in html
+    assert "doc-meta-version" not in html
 
 
 def test_book_style_resolves_and_builds(tmp_path):
@@ -118,6 +184,7 @@ def test_spec_badges_and_stable_tint(tmp_path):
         "title: Ref\nstyle: spec\nbadges: [Stable, Beta]",
     )
     html = build_document(src, tmp_path / "out").read_text(encoding="utf-8")
+    assert 'class="spec-badges"' in html
     assert 'class="badge stable"' in html  # "Stable" gets the success tint
     assert ">Stable<" in html and ">Beta<" in html
 

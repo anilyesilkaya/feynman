@@ -22,8 +22,14 @@ from jinja2 import Environment, FunctionLoader
 from feynman import diagnostics, manifest
 from feynman.collect import AssetCollector
 from feynman.highlight import get_style_css
+from feynman.parse import meta_list, meta_text
 from feynman.render import render_document
 from feynman.themes import BASE_CSS, resolve
+
+#: Front-matter keys that supply a document's tags, in precedence order.
+#: ``keywords`` predates ``tags`` (the article theme and the search index were
+#: written around it), so it stays a working alias rather than a break.
+TAG_KEYS = ("tags", "keywords")
 
 # The runtime script and the base stylesheet ship with every page; theme CSS
 # layers are added per document. ``minisearch.min.js`` (SEARCH_JS) is shipped
@@ -35,6 +41,18 @@ PYGMENTS_CSS_NAME = "pygments.css"
 
 def _asset_text(name: str) -> str:
     return resources.files("feynman.assets").joinpath(name).read_text(encoding="utf-8")
+
+
+def doc_tags(meta: dict) -> list[str]:
+    """The document's tags, from whichever key in :data:`TAG_KEYS` is present.
+
+    One list, whether the author wrote ``tags: [a, b]``, ``tags: a, b`` or the
+    older ``keywords: a · b``, so a theme renders tags without knowing which.
+    """
+    for key in TAG_KEYS:
+        if meta.get(key) is not None:
+            return meta_list(meta[key])
+    return []
 
 
 # One Jinja environment whose loader reads templates from the package assets, so
@@ -146,12 +164,16 @@ def render_page(
         # heading (e.g. line breaks / emphasis); `source_url` links the source.
         hero_title=meta.get("hero_title", "") or title,
         source_url=meta.get("source_url", ""),
+        # The credit line and tags, normalised here so every theme's `meta.html.j2`
+        # macros receive the same shapes: text for the credits, a list for tags.
+        # `date`/`version` are coerced because YAML hands back a `date` object and
+        # an `int` respectively.
+        authors=meta_text(meta.get("authors")),
+        date=meta_text(meta.get("date")),
+        version=meta_text(meta.get("version")),
+        tags=doc_tags(meta),
         # Extra front matter consumed by specific themes (ignored by others).
-        authors=meta.get("authors", ""),
-        date=meta.get("date", ""),
-        version=meta.get("version", ""),
         abstract=meta.get("abstract", ""),
-        keywords=meta.get("keywords", ""),
         badges=meta.get("badges") or [],
         body=body,
         inline=inline,

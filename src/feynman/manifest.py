@@ -32,15 +32,21 @@ _VERSION = 1
 def _relative(out_dir: Path, path: Path | str) -> str | None:
     """Return ``path`` as a safe ``out_dir``-relative POSIX string, or ``None``.
 
-    ``None`` means the path is unsafe to record or delete: absolute where it should be
-    relative, escaping ``out_dir`` via ``..`` or a symlink, or otherwise resolving
-    outside the output directory. Callers treat ``None`` as "leave it alone".
+    ``path`` is interpreted exactly as the filesystem would -- a relative one against
+    the process working directory, the same way the caller wrote the file -- and only
+    then made ``out_dir``-relative. Resolving a relative path against ``out_dir``
+    instead would double its prefix: ``build a.md -o out`` records ``out/a.html``
+    rather than ``a.html``, and the next build with an absolute ``-o`` records
+    ``a.html``, sees the stale ``out/out/a.html`` entry as no longer produced, and
+    deletes the page it just wrote.
+
+    ``None`` means the path is unsafe to record or delete: escaping ``out_dir`` via
+    ``..`` or a symlink, or otherwise resolving outside the output directory. Callers
+    treat ``None`` as "leave it alone".
     """
     out_root = Path(out_dir).resolve()
-    p = Path(path)
     try:
-        resolved = p.resolve() if p.is_absolute() else (out_root / p).resolve()
-        rel = resolved.relative_to(out_root)
+        rel = Path(path).resolve().relative_to(out_root)
     except (ValueError, OSError):
         return None
     if not rel.parts or ".." in rel.parts:
